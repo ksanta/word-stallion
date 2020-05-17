@@ -55,8 +55,7 @@ func (gameDao *GameDao) GetPendingGame() (*model.Game, error) {
 			MaxPlayerCount:      5,
 			CorrectAnswer:       -1,
 			GameInProgress:      false,
-			WaitingForAnswers:   false,
-			ExpiresAt:           time.Now().Add(10 * time.Minute).Unix(),
+			ExpiresAt:           0, // no expiry for pending games
 		}
 		marshalledGame, err := dynamodbattribute.MarshalMap(newGame)
 		if err != nil {

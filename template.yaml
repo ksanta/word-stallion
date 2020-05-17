@@ -1,11 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: >
-  Word Stallion
-
-  This is a simple word game where you need to guess the right definition of a word to move your
-  horse to the finish line. The first horse to cross the finish line wins!
-
+Description: Word Stallion game
 Parameters:
   PlayersTableName:
     Type: String
@@ -208,7 +203,7 @@ Resources:
   OnNewPlayerFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: onnewplayer/
+      CodeUri: lambda/onnewplayer/
       Handler: onnewplayer
       MemorySize: 128
       Runtime: go1.x
@@ -238,7 +233,7 @@ Resources:
   OnDisconnectFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ondisconnect/
+      CodeUri: lambda/ondisconnect/
       Handler: ondisconnect
       MemorySize: 128
       Runtime: go1.x

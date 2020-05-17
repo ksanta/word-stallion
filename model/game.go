@@ -10,9 +10,8 @@ type Game struct {
 	OptionsPerQuestion  int           `json:"options_per_question"`
 	DurationPerQuestion time.Duration `json:"duration_per_question"`
 	MaxPlayerCount      int           `json:"max_player_count"`
-	CorrectAnswer       int           `json:"correct_answer"`
 	GameInProgress      bool          `json:"game_in_progress"`
-	WaitingForAnswers   bool          `json:"waiting_for_answers"`
+	CorrectAnswer       int           `json:"correct_answer"`
 	StartTime           time.Time     `json:"start_time"`
 	ExpiresAt           int64         `json:"expires_at"`
 }

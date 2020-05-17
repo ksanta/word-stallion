@@ -85,20 +85,18 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 	// Auto-start game if max-players-per-game has been reached
 	if len(players) >= game.MaxPlayerCount {
 		fmt.Println("TODO: Auto-starting game", game.GameId)
-		// todo: autostart the game!
+		// todo: invoke doStartGame
 	}
 
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
-		//Body:       "New player added",
 	}, nil
 }
 
 func newErrorResponse(msg string, err error) (events.APIGatewayProxyResponse, error) {
-	fmt.Printf("%s: %v", msg, err)
 	return events.APIGatewayProxyResponse{
 		StatusCode: 500,
-	}, err
+	}, fmt.Errorf("%s: %w", msg, err)
 }
 
 func main() {
