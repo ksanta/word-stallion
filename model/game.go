@@ -13,4 +13,6 @@ type Game struct {
 	CorrectAnswer       int           `json:"correct_answer"`
 	GameInProgress      bool          `json:"game_in_progress"`
 	WaitingForAnswers   bool          `json:"waiting_for_answers"`
+	StartTime           time.Time     `json:"start_time"`
+	ExpiresAt           int64         `json:"expires_at"`
 }

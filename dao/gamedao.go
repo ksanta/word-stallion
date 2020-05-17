@@ -56,6 +56,7 @@ func (gameDao *GameDao) GetPendingGame() (*model.Game, error) {
 			CorrectAnswer:       -1,
 			GameInProgress:      false,
 			WaitingForAnswers:   false,
+			ExpiresAt:           time.Now().Add(10 * time.Minute).Unix(),
 		}
 		marshalledGame, err := dynamodbattribute.MarshalMap(newGame)
 		if err != nil {
@@ -85,7 +86,6 @@ func (gameDao *GameDao) GetPendingGame() (*model.Game, error) {
 }
 
 func (gameDao *GameDao) GetGame(gameId string) (*model.Game, error) {
-	fmt.Println("Constructing GetItemInput")
 	input := &dynamodb.GetItemInput{
 		TableName: gameDao.tableName,
 		Key: map[string]*dynamodb.AttributeValue{
@@ -96,7 +96,6 @@ func (gameDao *GameDao) GetGame(gameId string) (*model.Game, error) {
 		ConsistentRead: aws.Bool(true),
 	}
 
-	fmt.Println("Calling GetItem")
 	output, err := gameDao.service.GetItem(input)
 	if err != nil {
 		return nil, err

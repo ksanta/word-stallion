@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/ksanta/word-stallion/model"
+	"time"
 )
 
 type PlayerDao struct {
@@ -32,6 +33,7 @@ func (playerDao *PlayerDao) AddNewPlayer(connectionId string, gameId string, nam
 		Name:               name,
 		Icon:               icon,
 		Points:             0,
+		ExpiresAt:          time.Now().Add(10 * time.Minute).Unix(),
 	}
 
 	marshalledPlayer, err := dynamodbattribute.MarshalMap(newPlayer)
@@ -153,7 +155,7 @@ func (playerDao *PlayerDao) DeletePlayer(connectionId string) error {
 	deleteItemInput := &dynamodb.DeleteItemInput{
 		TableName: playerDao.tableName,
 		Key: map[string]*dynamodb.AttributeValue{
-			"conncetion_id": {
+			"connection_id": {
 				S: aws.String(connectionId),
 			},
 		},

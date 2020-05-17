@@ -172,6 +172,9 @@ Resources:
         WriteCapacityUnits: 5
       SSESpecification:
         SSEEnabled: True
+      TimeToLiveSpecification:
+        AttributeName: "expires_at"
+        Enabled: True
   GamesTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -189,7 +192,10 @@ Resources:
         WriteCapacityUnits: 5
       SSESpecification:
         SSEEnabled: True
-#      GlobalSecondaryIndexes:
+      TimeToLiveSpecification:
+        AttributeName: "expires_at"
+        Enabled: True
+#     GlobalSecondaryIndexes:
 #        - IndexName: "game_in_progress_index"
 #          KeySchema:
 #            - AttributeName: "game_in_progress"
@@ -238,10 +244,19 @@ Resources:
       Runtime: go1.x
       Environment:
         Variables:
+          GAMES_TABLE: !Ref GamesTableName
           PLAYERS_TABLE: !Ref PlayersTableName
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref PlayersTableName
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GamesTableName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - 'execute-api:ManageConnections'
+              Resource:
+                - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WordStallionApi}/*'
   OnDisconnectPermission:
     Type: AWS::Lambda::Permission
     DependsOn:

@@ -38,7 +38,6 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 		}, nil
 	}
 
-	fmt.Printf("gameDao: %+v, player: %+v", gameDao, player)
 	game, err := gameDao.GetGame(player.GameId)
 	if err != nil {
 		return newErrorResponse("error getting game", err)

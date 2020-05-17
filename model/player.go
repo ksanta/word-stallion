@@ -1,7 +1,5 @@
 package model
 
-import "time"
-
 // Player represents a player that started playing a game. The JSON metadata is for converting
 // this struct into a DynamoDB item.
 type Player struct {
@@ -19,6 +17,6 @@ type Player struct {
 	Icon string `json:"icon"`
 	// Points for this player
 	Points int `json:"points"`
-	// Time tracks when a player started to answer a question
-	StartTime time.Time `json:"start_time"`
+	// Time this record will expire
+	ExpiresAt int64 `json:"expires_at"`
 }
