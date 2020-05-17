@@ -1,0 +1,261 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Word Stallion
+
+  This is a simple word game where you need to guess the right definition of a word to move your
+  horse to the finish line. The first horse to cross the finish line wins!
+
+Parameters:
+  PlayersTableName:
+    Type: String
+    Default: 'word_stallion_players'
+    Description: (Required) The name of a new DynamoDB table to store individual player details. Minimum 3 characters.
+    MinLength: 3
+    MaxLength: 50
+    AllowedPattern: ^[A-Za-z_]+$
+    ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
+  GamesTableName:
+    Type: String
+    Default: 'word_stallion_games'
+    Description: (Required) The name of a new DynamoDB table to store data that applies to all players in one game. Minimum 3 characters.
+    MinLength: 3
+    MaxLength: 50
+    AllowedPattern: ^[A-Za-z_]+$
+    ConstraintDescription: 'Required. Can be characters and underscore only. No numbers or special characters allowed.'
+  RootDomainName:
+    Description: Root domain name you own (example.com)
+    Type: String
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      S3hostedzoneID: Z3AQBSTGFYJSTF
+      websiteendpoint: s3-website-us-east-1.amazonaws.com
+    us-west-1:
+      S3hostedzoneID: Z2F56UZL2M1ACD
+      websiteendpoint: s3-website-us-west-1.amazonaws.com
+    us-west-2:
+      S3hostedzoneID: Z3BJ6K6RIION7M
+      websiteendpoint: s3-website-us-west-2.amazonaws.com
+    eu-west-1:
+      S3hostedzoneID: Z1BKCTXD74EZPE
+      websiteendpoint: s3-website-eu-west-1.amazonaws.com
+    ap-southeast-1:
+      S3hostedzoneID: Z3O0J2DXBE1FTB
+      websiteendpoint: s3-website-ap-southeast-1.amazonaws.com
+    ap-southeast-2:
+      S3hostedzoneID: Z1WCIGYICN2BYD
+      websiteendpoint: s3-website-ap-southeast-2.amazonaws.com
+    ap-northeast-1:
+      S3hostedzoneID: Z2M4EHUR26P7ZW
+      websiteendpoint: s3-website-ap-northeast-1.amazonaws.com
+    sa-east-1:
+      S3hostedzoneID: Z31GFT0UA1I2HV
+      websiteendpoint: s3-website-sa-east-1.amazonaws.com
+
+Resources:
+  WebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub
+        - wordstallion.${Domain}
+        - Domain: !Ref RootDomainName
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+    DeletionPolicy: Retain
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      PolicyDocument:
+        Id: MyPolicy
+        Version: 2012-10-17
+        Statement:
+          - Sid: PublicReadForGetBucketObjects
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Join
+              - ''
+              - - 'arn:aws:s3:::'
+                - !Ref WebsiteBucket
+                - /*
+      Bucket: !Ref WebsiteBucket
+  DnsRecord:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneName: !Sub
+        - ${Domain}.
+        - Domain: !Ref RootDomainName
+      Comment: Zone apex alias.
+      RecordSets:
+        - Name: !Sub
+            - wordstallion.${Domain}
+            - Domain: !Ref RootDomainName
+          Type: A
+          AliasTarget:
+            HostedZoneId: !FindInMap [ RegionMap, !Ref 'AWS::Region', S3hostedzoneID]
+            DNSName: !FindInMap [ RegionMap, !Ref 'AWS::Region', websiteendpoint]
+  WordStallionApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: WordStallionApi
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: "$request.body.MessageType"
+  NewPlayerRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WordStallionApi
+      RouteKey: newplayer
+      AuthorizationType: NONE
+      OperationName: NewPlayerRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref NewPlayerInteg
+  NewPlayerInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WordStallionApi
+      Description: New Player Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub:
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnNewPlayerFunction.Arn}/invocations
+  DisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WordStallionApi
+      RouteKey: $disconnect
+      AuthorizationType: NONE
+      OperationName: DisconnectRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref DisconnectInteg
+  DisconnectInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WordStallionApi
+      Description: Disconnect Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub:
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnDisconnectFunction.Arn}/invocations
+  Deployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+      - NewPlayerRoute
+      - DisconnectRoute
+    Properties:
+      ApiId: !Ref WordStallionApi
+  Stage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      StageName: Prod
+      Description: Prod Stage
+      DeploymentId: !Ref Deployment
+      ApiId: !Ref WordStallionApi
+  PlayersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref PlayersTableName
+      AttributeDefinitions:
+        - AttributeName: "connection_id"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "connection_id"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      SSESpecification:
+        SSEEnabled: True
+  GamesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref GamesTableName
+      AttributeDefinitions:
+        - AttributeName: "game_id"
+          AttributeType: "S"
+#        - AttributeName: "game_in_progress"
+#          AttributeType: "BOOL"
+      KeySchema:
+        - AttributeName: "game_id"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      SSESpecification:
+        SSEEnabled: True
+#      GlobalSecondaryIndexes:
+#        - IndexName: "game_in_progress_index"
+#          KeySchema:
+#            - AttributeName: "game_in_progress"
+#              KeyType: "HASH"
+#          Projection:
+#            ProjectionType: "ALL"
+#          ProvisionedThroughput:
+#            ReadCapacityUnits: 5
+#            WriteCapacityUnits: 5
+  OnNewPlayerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: onnewplayer/
+      Handler: onnewplayer
+      MemorySize: 128
+      Runtime: go1.x
+      Environment:
+        Variables:
+          PLAYERS_TABLE: !Ref PlayersTableName
+          GAMES_TABLE: !Ref GamesTableName
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PlayersTableName
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GamesTableName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - 'execute-api:ManageConnections'
+              Resource:
+                - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WordStallionApi}/*'
+  OnNewPlayerPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - WordStallionApi
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref OnNewPlayerFunction
+      Principal: apigateway.amazonaws.com
+  OnDisconnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ondisconnect/
+      Handler: ondisconnect
+      MemorySize: 128
+      Runtime: go1.x
+      Environment:
+        Variables:
+          PLAYERS_TABLE: !Ref PlayersTableName
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PlayersTableName
+  OnDisconnectPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - WordStallionApi
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref OnDisconnectFunction
+      Principal: apigateway.amazonaws.com
+
+
+Outputs:
+  GameURI:
+    Description: "The address to use to start playing"
+    Value: !Join ['', ['http://wordstallion.', !Ref RootDomainName]]
+  WebSocketURI:
+    Description: "The WSS Protocol URI to connect to"
+    Value: !Join [ '', [ 'wss://', !Ref WordStallionApi, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'Stage'] ]

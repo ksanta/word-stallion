@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Custom fonts -->
+    <link href='https://fonts.googleapis.com/css?family=Sancreek' rel='stylesheet' type='text/css'>
+    <!-- Bootstrap CDN -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" type="text/css" href="styles/styles.css">
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <!-- Custom JS -->
+    <script type="text/javascript" src="scripts/app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <title>Word Stallion</title>
+</head>
+
+<body>
+<div id="title">
+    <h1>◊ Word Stallion ◊</h1>
+</div>
+
+<div id="selections">
+    <h1>Welcome to Word Stallion!</h1>
+    <div>
+        <h2>Enter your Name:</h2>
+        <input type="text" class="form-control" maxlength="50" id="nameEntryOne" value="">
+        <div>
+            <h2>Pick your Horse:</h2>
+            <img id="Horse1" class="horse-option" src="images/Horse1.png">
+            <img id="Horse2" class="horse-option" src="images/Horse2.png">
+            <img id="Horse3" class="horse-option" src="images/Horse3.png">
+            <img id="Horse4" class="horse-option" src="images/Horse4.png">
+            <img id="Horse5" class="horse-option" src="images/Horse5.png">
+            <img id="Horse6" class="horse-option" src="images/Horse6.png">
+            <img id="Horse7" class="horse-option" src="images/Horse7.png">
+        </div>
+    </div>
+    <button type="button" class="btn btn-success submit">Let's go!</button>
+</div>
+
+<div id="countDownBox">
+    <h2>Answer the questions correctly to move your horse. The race is about to start!</h2>
+    <div id="circle">
+        <h1 id="num"></h1>
+    </div>
+    <br/>
+</div>
+
+<div id="startGameBox" style="display: none;">
+    <h2>Waiting for other players to join...</h2>
+    <p>
+    <h2>When ready, you can
+        <button type="button" id="start-game-btn" class="btn btn-success">Start Game</button>
+    </h2>
+</div>
+
+<div id="errorBox" style="display:none;">
+    <br/>
+    <h2 id="errorMessage"></h2>
+    <br/>
+</div>
+
+<div id="container">
+    <div class="row">
+        <div class="col-lg-3 col-md-4 col-sm-6">
+            <div id="question-area">
+                <h2 id="word-to-guess"></h2>
+                <div class="definition" id="definition0" data-option="0"></div>
+                <div class="definition" id="definition1" data-option="1"></div>
+                <div class="definition" id="definition2" data-option="2"></div>
+            </div>
+        </div>
+        <div class="col-lg-9 col-md-8 col-sm-6" id="tracks">
+            <!-- template-track is cloned for each new player -->
+            <div class="track" id="template-track">
+                <div class="race-area">
+                    <span class="player-name"></span>
+                    <img class="horse" src="" alt="horse"/>
+                </div>
+                <div class="finish-area">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="whoWon">
+    <div class="pyro">
+        <div class="before"></div>
+        <h1>To the Winners Circle!</h1>
+        <h1 id=winnerName></h1>
+        <div id="winPic"></div>
+        <h1>Congratulations!</h1>
+        <button type="button" class="btn btn-success reset">Play Again!</button>
+        <div class="after"></div>
+    </div>
+</div>
+
+</body>
+</html>
