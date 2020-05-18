@@ -21,6 +21,13 @@ Parameters:
   RootDomainName:
     Description: Root domain name you own (example.com)
     Type: String
+  WordBucketName:
+    Description: 'The name of the bucket that will cache words scraped from the web'
+    Type: String
+  MaxWordsToScrape:
+    Description: 'The number of words to scrape from the web'
+    Default: 3000
+    Type: Number
 
 Mappings:
   RegionMap:
@@ -77,6 +84,11 @@ Resources:
                 - !Ref WebsiteBucket
                 - /*
       Bucket: !Ref WebsiteBucket
+  WordBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref WordBucketName
+    DeletionPolicy: Retain
   DnsRecord:
     Type: AWS::Route53::RecordSetGroup
     Properties:
@@ -260,8 +272,21 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref OnDisconnectFunction
       Principal: apigateway.amazonaws.com
-
-
+  DoWordScrapeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/dowordscrape/
+      Handler: dowordscrape
+      MemorySize: 128
+      Runtime: go1.x
+      Timeout: 300
+      Environment:
+        Variables:
+          WORDS_BUCKET: !Ref WordBucketName
+          LIMIT: !Ref MaxWordsToScrape
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref WordBucketName
 Outputs:
   GameURI:
     Description: "The address to use to start playing"
