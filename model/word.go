@@ -9,7 +9,7 @@ type Word struct {
 	URL        string
 }
 
-func NewFromStringSlice(stringSlice []string) Word {
+func NewWord(stringSlice []string) Word {
 	return Word{
 		Word:       stringSlice[0],
 		WordType:   stringSlice[1],

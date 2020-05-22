@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/ksanta/word-stallion/dao"
 	"github.com/ksanta/word-stallion/service"
 	"os"
+	"time"
 )
 
 var (
@@ -21,25 +21,37 @@ func init() {
 	playerService = service.NewPlayerService(playerDao)
 }
 
-func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
-	/*
-	   StartGame(gameId)
+func handler(gameId string) error {
+	game, err := gameDao.GetGame(gameId)
+	if err != nil {
+		return fmt.Errorf("error getting game: %w", err)
+	}
 
-	   if game is in progress
-	     return
+	// Ignore multiple requests to start a game if it's already in progress
+	if game.GameInProgress {
+		return nil
+	}
 
-	   set game in progress to true
-	   alert players the game will begin
-	   sleep 5 seconds
-	   invoke DoRound
+	// Update game to in progress
+	_, err = gameDao.UpdateToInProgress(gameId)
+	if err != nil {
+		return fmt.Errorf("error updating game to in progress: %w", err)
+	}
 
-	*/
-}
+	// Send "about to start" message to all active players
+	const startingInSeconds = 5
+	_, err = playerService.SendAboutToStartToAllActivePlayers(game.GameId, game.Endpoint, startingInSeconds)
+	if err != nil {
+		return fmt.Errorf("error sending msg to all players: %w", err)
+	}
 
-func newErrorResponse(msg string, err error) (events.APIGatewayProxyResponse, error) {
-	return events.APIGatewayProxyResponse{
-		StatusCode: 500,
-	}, fmt.Errorf("%s: %w", msg, err)
+	// Sleep for a bit
+	time.Sleep(startingInSeconds * time.Second)
+
+	// Asynchronously invoke DoRound function
+	fmt.Println("todo: invoke DoRound function")
+
+	return nil
 }
 
 func main() {

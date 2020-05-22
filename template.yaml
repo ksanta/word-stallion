@@ -223,11 +223,14 @@ Resources:
         Variables:
           PLAYERS_TABLE: !Ref PlayersTableName
           GAMES_TABLE: !Ref GamesTableName
+          DO_START_GAME_FUNCTION_NAME: !Ref DoStartGameFunction
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref PlayersTableName
         - DynamoDBCrudPolicy:
             TableName: !Ref GamesTableName
+        - LambdaInvokePolicy:
+            FunctionName: !Ref DoStartGameFunction
         - Statement:
             - Effect: Allow
               Action:
@@ -242,6 +245,29 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref OnNewPlayerFunction
       Principal: apigateway.amazonaws.com
+  DoStartGameFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/dostartgame/
+      Handler: dostartgame
+      MemorySize: 128
+      Runtime: go1.x
+      Environment:
+        Variables:
+          GAMES_TABLE: !Ref GamesTableName
+          PLAYERS_TABLE: !Ref PlayersTableName
+      Timeout: 10
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PlayersTableName
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GamesTableName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - 'execute-api:ManageConnections'
+              Resource:
+                - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WordStallionApi}/*'
   OnDisconnectFunction:
     Type: AWS::Serverless::Function
     Properties:

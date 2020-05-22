@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
+	lambda2 "github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/ksanta/word-stallion/dao"
 	"github.com/ksanta/word-stallion/model"
 	"github.com/ksanta/word-stallion/service"
@@ -16,20 +17,27 @@ import (
 )
 
 var (
-	gameDao       *dao.GameDao
-	playerDao     *dao.PlayerDao
-	playerService *service.PlayerService
+	gameDao                 *dao.GameDao
+	playerDao               *dao.PlayerDao
+	playerService           *service.PlayerService
+	lambdaService           *lambda2.Lambda
+	doStartGameFunctionName string
 )
 
 func init() {
 	gameDao = dao.NewGameDao(os.Getenv("GAMES_TABLE"))
 	playerDao = dao.NewPlayerDao(os.Getenv("PLAYERS_TABLE"))
 	playerService = service.NewPlayerService(playerDao)
+
+	mySession := session.Must(session.NewSession())
+	lambdaService = lambda2.New(mySession)
+	doStartGameFunctionName = os.Getenv("DO_START_GAME_FUNCTION_NAME")
 }
 
 func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Get a pending game. One will be created if there isn't one yet.
-	game, err := gameDao.GetPendingGame()
+	endpoint := event.RequestContext.DomainName + "/" + event.RequestContext.Stage
+	game, err := gameDao.GetPendingGame(endpoint)
 	if err != nil {
 		return newErrorResponse("Failed to get Game item", err)
 	}
@@ -77,20 +85,34 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 	}
 
 	// Send a "round summary" message to all active players
-	players, err := playerService.SendRoundSummaryToAllActivePlayers(game.GameId, event)
+	players, err := playerService.SendRoundSummaryToAllActivePlayers(game.GameId, game.Endpoint)
 	if err != nil {
 		return newErrorResponse("Error sending a message to all players", err)
 	}
 
 	// Auto-start game if max-players-per-game has been reached
 	if len(players) >= game.MaxPlayerCount {
-		fmt.Println("TODO: Auto-starting game", game.GameId)
-		// todo: invoke doStartGame
+		fmt.Println("Auto-starting game", game.GameId, "after reaching max players")
+		err := invokeDoStartGame(game.GameId)
+		if err != nil {
+			return newErrorResponse("Error invoking start game function", err)
+		}
 	}
 
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
 	}, nil
+}
+
+func invokeDoStartGame(gameId string) error {
+	invokeInput := &lambda2.InvokeInput{
+		FunctionName:   aws.String(doStartGameFunctionName),
+		InvocationType: aws.String(lambda2.InvocationTypeEvent),
+		Payload:        []byte("\"" + gameId + "\""),
+	}
+
+	_, err := lambdaService.Invoke(invokeInput)
+	return err
 }
 
 func newErrorResponse(msg string, err error) (events.APIGatewayProxyResponse, error) {

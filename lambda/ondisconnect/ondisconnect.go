@@ -58,7 +58,7 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 		}
 	}
 
-	_, err = playerService.SendRoundSummaryToAllActivePlayers(game.GameId, event)
+	_, err = playerService.SendRoundSummaryToAllActivePlayers(game.GameId, game.Endpoint)
 	if err != nil {
 		return newErrorResponse("error ending round update to all players", err)
 	}

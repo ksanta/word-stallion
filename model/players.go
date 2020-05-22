@@ -3,7 +3,6 @@ package model
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
@@ -13,13 +12,13 @@ import (
 // todo: change this to NOT a pointer?
 type Players []*Player
 
-func (players Players) SendMessageToActivePlayers(message interface{}, event events.APIGatewayWebsocketProxyRequest) error {
+func (players Players) SendMessageToActivePlayers(message interface{}, endpoint string) error {
 	waitGroup := sync.WaitGroup{}
 
 	// todo: create the mgmtService once - move to dao?
 	mySession := session.Must(session.NewSession())
 	apiMgmtService := apigatewaymanagementapi.New(mySession, &aws.Config{
-		Endpoint: aws.String(event.RequestContext.DomainName + "/" + event.RequestContext.Stage),
+		Endpoint: aws.String(endpoint),
 	})
 
 	for _, player := range players {

@@ -25,7 +25,7 @@ func NewGameDao(tableName string) *GameDao {
 	}
 }
 
-func (gameDao *GameDao) GetPendingGame() (*model.Game, error) {
+func (gameDao *GameDao) GetPendingGame(endpoint string) (*model.Game, error) {
 	// Scan for a pending game
 	scanInput := &dynamodb.ScanInput{
 		TableName:        gameDao.tableName,
@@ -49,10 +49,11 @@ func (gameDao *GameDao) GetPendingGame() (*model.Game, error) {
 
 		newGame := &model.Game{
 			GameId:              gameId,
+			Endpoint:            endpoint,
 			TargetScore:         500,
 			OptionsPerQuestion:  3,
 			DurationPerQuestion: 10 * time.Second,
-			MaxPlayerCount:      5,
+			MaxPlayerCount:      2,
 			CorrectAnswer:       -1,
 			GameInProgress:      false,
 			ExpiresAt:           0, // no expiry for pending games
@@ -104,7 +105,6 @@ func (gameDao *GameDao) GetGame(gameId string) (*model.Game, error) {
 		return nil, nil
 	}
 
-	fmt.Println("Unmarshalling")
 	game := &model.Game{}
 	err = dynamodbattribute.UnmarshalMap(output.Item, game)
 	if err != nil {
@@ -112,4 +112,41 @@ func (gameDao *GameDao) GetGame(gameId string) (*model.Game, error) {
 	}
 
 	return game, nil
+}
+
+func (gameDao *GameDao) UpdateToInProgress(gameId string) (*model.Game, error) {
+	// Prepare the request
+	updateItemInput := &dynamodb.UpdateItemInput{
+		TableName: gameDao.tableName,
+		Key: map[string]*dynamodb.AttributeValue{
+			"game_id": {
+				S: aws.String(gameId),
+			},
+		},
+		UpdateExpression: aws.String("SET #InProgress = :inProgress"),
+		ExpressionAttributeNames: map[string]*string{
+			"#InProgress": aws.String("game_in_progress"),
+		},
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":inProgress": {
+				BOOL: aws.Bool(true),
+			},
+		},
+		ReturnValues: aws.String("ALL_NEW"),
+	}
+
+	// Send the update request
+	updateItemOutput, err := gameDao.service.UpdateItem(updateItemInput)
+	if err != nil {
+		return nil, err
+	}
+
+	// Unmarshal the DynamoDB map into an object
+	updatedGame := &model.Game{}
+	err = dynamodbattribute.UnmarshalMap(updateItemOutput.Attributes, updatedGame)
+	if err != nil {
+		return nil, err
+	}
+
+	return updatedGame, nil
 }

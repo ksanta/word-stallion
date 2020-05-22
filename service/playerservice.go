@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"github.com/aws/aws-lambda-go/events"
 	"github.com/ksanta/word-stallion/dao"
 	"github.com/ksanta/word-stallion/model"
 )
@@ -17,7 +16,7 @@ func NewPlayerService(playerDao *dao.PlayerDao) *PlayerService {
 	}
 }
 
-func (playerService *PlayerService) SendRoundSummaryToAllActivePlayers(gameId string, event events.APIGatewayWebsocketProxyRequest) (model.Players, error) {
+func (playerService *PlayerService) SendRoundSummaryToAllActivePlayers(gameId string, endpoint string) (model.Players, error) {
 	players, err := playerService.playerDao.GetPlayers(gameId)
 	if err != nil {
 		return nil, fmt.Errorf("error getting players: %w", err)
@@ -29,9 +28,29 @@ func (playerService *PlayerService) SendRoundSummaryToAllActivePlayers(gameId st
 		},
 	}
 
-	err = players.SendMessageToActivePlayers(roundSummaryMsg, event)
+	err = players.SendMessageToActivePlayers(roundSummaryMsg, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("error sending msg to players: %w", err)
+	}
+
+	return players, nil
+}
+
+func (playerService *PlayerService) SendAboutToStartToAllActivePlayers(gameId string, endpoint string, startingInSeconds int) (model.Players, error) {
+	players, err := playerService.playerDao.GetPlayers(gameId)
+	if err != nil {
+		return nil, fmt.Errorf("error getting players: %w", err)
+	}
+
+	aboutToStartMsg := &model.MessageToPlayer{
+		AboutToStart: &model.AboutToStart{
+			Seconds: startingInSeconds,
+		},
+	}
+
+	err = players.SendMessageToActivePlayers(aboutToStartMsg, endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("error sending msg to all players: %w", err)
 	}
 
 	return players, nil

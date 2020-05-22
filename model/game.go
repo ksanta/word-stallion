@@ -6,6 +6,7 @@ import (
 
 type Game struct {
 	GameId              string        `json:"game_id"`
+	Endpoint            string        `json:"endpoint"`
 	TargetScore         int           `json:"target_score"`
 	OptionsPerQuestion  int           `json:"options_per_question"`
 	DurationPerQuestion time.Duration `json:"duration_per_question"`
