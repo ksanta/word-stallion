@@ -55,3 +55,18 @@ func (playerService *PlayerService) SendAboutToStartToAllActivePlayers(gameId st
 
 	return players, nil
 }
+
+func (playerService *PlayerService) SendQuestionToAllActivePlayers(players model.Players, endpoint string, wordsInThisRound model.Words, correctAnswer int, secondsPerQuestion int) error {
+	questionMsg := model.MessageToPlayer{
+		PresentQuestion: &model.PresentQuestion{
+			WordToGuess:    wordsInThisRound[correctAnswer].Word,
+			Definitions:    wordsInThisRound.GetDefinitions(),
+			SecondsAllowed: secondsPerQuestion,
+		},
+	}
+	err := players.SendMessageToActivePlayers(questionMsg, endpoint)
+	if err != nil {
+		return fmt.Errorf("error sending question to all players: %w", err)
+	}
+	return nil
+}

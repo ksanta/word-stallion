@@ -66,10 +66,13 @@ func (wordsDao *WordsDao) GetWords() (model.Words, error) {
 		Key:    aws.String(KEY),
 	}
 
+	// fixme: this returns zero bytes
 	_, err := wordsDao.downloadService.Download(bytesWriter, getObjectInput)
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println("Downloaded bytes:", len(wordsBytes))
 
 	var words model.Words
 	wordReader := csv.NewReader(bytes.NewBuffer(wordsBytes))

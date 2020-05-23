@@ -48,25 +48,17 @@ func (gameDao *GameDao) GetPendingGame(endpoint string) (*model.Game, error) {
 		fmt.Println("Creating a new game:", gameId)
 
 		newGame := &model.Game{
-			GameId:              gameId,
-			Endpoint:            endpoint,
-			TargetScore:         500,
-			OptionsPerQuestion:  3,
-			DurationPerQuestion: 10 * time.Second,
-			MaxPlayerCount:      2,
-			CorrectAnswer:       -1,
-			GameInProgress:      false,
-			ExpiresAt:           0, // no expiry for pending games
+			GameId:             gameId,
+			Endpoint:           endpoint,
+			TargetScore:        500,
+			OptionsPerQuestion: 3,
+			SecondsPerQuestion: 10,
+			MaxPlayerCount:     2,
+			CorrectAnswer:      -1,
+			GameInProgress:     false,
+			ExpiresAt:          0, // no expiry for pending games
 		}
-		marshalledGame, err := dynamodbattribute.MarshalMap(newGame)
-		if err != nil {
-			return nil, err
-		}
-		putItemInput := &dynamodb.PutItemInput{
-			TableName: gameDao.tableName,
-			Item:      marshalledGame,
-		}
-		_, err = gameDao.service.PutItem(putItemInput)
+		err = gameDao.PutGame(newGame)
 		if err != nil {
 			return nil, err
 		}
@@ -83,6 +75,19 @@ func (gameDao *GameDao) GetPendingGame(endpoint string) (*model.Game, error) {
 		return game, nil
 	}
 	return nil, errors.New("found more than one pending game")
+}
+
+func (gameDao *GameDao) PutGame(game *model.Game) error {
+	marshalledGame, err := dynamodbattribute.MarshalMap(game)
+	if err != nil {
+		return err
+	}
+	putItemInput := &dynamodb.PutItemInput{
+		TableName: gameDao.tableName,
+		Item:      marshalledGame,
+	}
+	_, err = gameDao.service.PutItem(putItemInput)
+	return err
 }
 
 func (gameDao *GameDao) GetGame(gameId string) (*model.Game, error) {

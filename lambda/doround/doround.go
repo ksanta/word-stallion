@@ -7,13 +7,14 @@ import (
 	"github.com/ksanta/word-stallion/model"
 	"github.com/ksanta/word-stallion/service"
 	"os"
+	"time"
 )
 
 var (
 	gameDao       *dao.GameDao
 	playerDao     *dao.PlayerDao
 	playerService *service.PlayerService
-	words         model.Words
+	wordsByType   map[string]model.Words
 )
 
 func init() {
@@ -22,40 +23,55 @@ func init() {
 	playerService = service.NewPlayerService(playerDao)
 
 	bucketName := os.Getenv("WORDS_BUCKET")
+	fmt.Println("Init: bucket name is", bucketName)
 	wordsDao := dao.NewWordsDao(bucketName)
-	words2, err := wordsDao.GetWords()
+	words, err := wordsDao.GetWords()
 	if err != nil {
 		fmt.Println("error loading words:", err)
 		return
 	}
-	words = words2
+	fmt.Println("Init: downloaded", len(words), "words")
+	wordsByType = words.GroupByType()
 }
 
 func handler(gameId string) error {
 	// Fetch the info we need
+	fmt.Println("Getting players")
 	players, err := playerDao.GetPlayers(gameId)
 	if err != nil {
 		return fmt.Errorf("error getting players: %w\n", err)
 	}
+	fmt.Println("Getting game")
 	game, err := gameDao.GetGame(gameId)
 	if err != nil {
 		return fmt.Errorf("error getting game: %w\n", err)
 	}
 
 	if players.PlayerWithHighestPoints().Points < game.TargetScore {
-		fmt.Println("todo: send question to all players")
+		// Prepare question and answer
+		wordType := model.PickRandomType()
+		fmt.Println("Word type is", wordType)
+		wordsInThisRound := wordsByType[wordType].PickRandomWords(game.OptionsPerQuestion)
+		fmt.Println("Chose", len(wordsInThisRound), "words")
+		game.CorrectAnswer = wordsInThisRound.PickRandomIndex()
+		game.StartTime = time.Now()
+		fmt.Println("Updating game")
+		err = gameDao.PutGame(game)
+		if err != nil {
+			return fmt.Errorf("error saving game: %w\n", err)
+		}
+
+		fmt.Println("Updating players to waiting (todo)")
 		/*
-		 prepare question and answer
-
-		 set game.start_time
-		 set game.correct_answer
-		 save game
-
 		 set players.waiting
 		 save players
-
-		 send question to all players
 		*/
+
+		fmt.Println("Sending question to all players")
+		err = playerService.SendQuestionToAllActivePlayers(players, game.Endpoint, wordsInThisRound, game.CorrectAnswer, game.SecondsPerQuestion)
+		if err != nil {
+			return fmt.Errorf("error sending msg to players: %w\n", err)
+		}
 
 	} else {
 		// 	send game summary to all active players

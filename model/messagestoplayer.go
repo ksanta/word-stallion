@@ -2,9 +2,9 @@ package model
 
 type MessageToPlayer struct {
 	//PlayerDetailsReq *PlayerDetailsReq `json:",omitempty"`
-	Welcome      *Welcome      `json:",omitempty"`
-	AboutToStart *AboutToStart `json:",omitempty"`
-	//PresentQuestion  *PresentQuestion  `json:",omitempty"`
+	Welcome         *Welcome         `json:",omitempty"`
+	AboutToStart    *AboutToStart    `json:",omitempty"`
+	PresentQuestion *PresentQuestion `json:",omitempty"`
 	//PlayerResult     *PlayerResult     `json:",omitempty"`
 	RoundSummary *RoundSummary `json:",omitempty"`
 	//Summary          *Summary          `json:",omitempty"`
@@ -19,6 +19,13 @@ type Welcome struct {
 // AboutToStart tells all players that the game will start in X seconds
 type AboutToStart struct {
 	Seconds int
+}
+
+// PresentQuestion is the question sent to each player
+type PresentQuestion struct {
+	WordToGuess    string
+	Definitions    []string
+	SecondsAllowed int
 }
 
 // RoundSummary is sent to each active player at the end of each round
