@@ -58,24 +58,20 @@ func (wordsDao *WordsDao) SaveWords(words model.Words) error {
 }
 
 func (wordsDao *WordsDao) GetWords() (model.Words, error) {
-	var wordsBytes []byte
-	bytesWriter := aws.NewWriteAtBuffer(wordsBytes)
+	buf := aws.NewWriteAtBuffer([]byte{})
 
 	getObjectInput := &s3.GetObjectInput{
 		Bucket: aws.String(wordsDao.bucketName),
 		Key:    aws.String(KEY),
 	}
 
-	// fixme: this returns zero bytes
-	_, err := wordsDao.downloadService.Download(bytesWriter, getObjectInput)
+	_, err := wordsDao.downloadService.Download(buf, getObjectInput)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("Downloaded bytes:", len(wordsBytes))
-
-	var words model.Words
-	wordReader := csv.NewReader(bytes.NewBuffer(wordsBytes))
+	words := model.Words{}
+	wordReader := csv.NewReader(bytes.NewBuffer(buf.Bytes()))
 	for {
 		record, err := wordReader.Read()
 		if err == io.EOF {

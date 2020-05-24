@@ -23,14 +23,13 @@ func init() {
 	playerService = service.NewPlayerService(playerDao)
 
 	bucketName := os.Getenv("WORDS_BUCKET")
-	fmt.Println("Init: bucket name is", bucketName)
 	wordsDao := dao.NewWordsDao(bucketName)
 	words, err := wordsDao.GetWords()
 	if err != nil {
 		fmt.Println("error loading words:", err)
 		return
 	}
-	fmt.Println("Init: downloaded", len(words), "words")
+	fmt.Println("Init: loaded", len(words), "words")
 	wordsByType = words.GroupByType()
 }
 
@@ -49,10 +48,9 @@ func handler(gameId string) error {
 
 	if players.PlayerWithHighestPoints().Points < game.TargetScore {
 		// Prepare question and answer
+		fmt.Println("Preparing a new question")
 		wordType := model.PickRandomType()
-		fmt.Println("Word type is", wordType)
 		wordsInThisRound := wordsByType[wordType].PickRandomWords(game.OptionsPerQuestion)
-		fmt.Println("Chose", len(wordsInThisRound), "words")
 		game.CorrectAnswer = wordsInThisRound.PickRandomIndex()
 		game.StartTime = time.Now()
 		fmt.Println("Updating game")
