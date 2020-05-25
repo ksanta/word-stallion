@@ -23,7 +23,8 @@ var (
 func init() {
 	gameDao = dao.NewGameDao(os.Getenv("GAMES_TABLE"))
 	playerDao = dao.NewPlayerDao(os.Getenv("PLAYERS_TABLE"))
-	playerService = service.NewPlayerService(playerDao)
+	apiDao := dao.NewApiDao(os.Getenv("API_ENDPOINT"))
+	playerService = service.NewPlayerService(playerDao, apiDao)
 
 	mySession := session.Must(session.NewSession())
 	lambdaService = lambda2.New(mySession)
@@ -42,14 +43,18 @@ func handler(gameId string) error {
 	}
 
 	// Update game to in progress
-	_, err = gameDao.UpdateToInProgress(gameId)
+	game.GameInProgress = true
+	game.ExpiresAt = time.Now().Add(10 * time.Minute).Unix()
+	err = gameDao.PutGame(game)
 	if err != nil {
 		return fmt.Errorf("error updating game to in progress: %w", err)
 	}
 
+	// todo: Set the expiresAt attribute on all the players
+
 	// Send "about to start" message to all active players
 	const startingInSeconds = 5
-	_, err = playerService.SendAboutToStartToAllActivePlayers(game.GameId, game.Endpoint, startingInSeconds)
+	_, err = playerService.SendAboutToStartToActivePlayers(game.GameId, startingInSeconds)
 	if err != nil {
 		return fmt.Errorf("error sending msg to all players: %w", err)
 	}

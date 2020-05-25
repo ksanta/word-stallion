@@ -1,58 +1,7 @@
 package model
 
-import (
-	"encoding/json"
-	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
-	"sync"
-)
-
 // todo: change this to NOT a pointer?
 type Players []*Player
-
-func (players Players) SendMessageToActivePlayers(message interface{}, endpoint string) error {
-	waitGroup := sync.WaitGroup{}
-
-	// todo: create the mgmtService once - move to dao?
-	mySession := session.Must(session.NewSession())
-	apiMgmtService := apigatewaymanagementapi.New(mySession, &aws.Config{
-		Endpoint: aws.String(endpoint),
-	})
-
-	for _, player := range players {
-		if player.Active {
-			waitGroup.Add(1)
-			// Make a copy so goroutine will pick out correct connection id
-			connectionId := player.ConnectionId
-			go func() {
-				defer waitGroup.Done()
-
-				marshalledMessage, err := json.Marshal(message)
-				if err != nil {
-					fmt.Println("Error marshalling welcome message", err)
-					return
-				}
-
-				postToConnectionInput := &apigatewaymanagementapi.PostToConnectionInput{
-					ConnectionId: aws.String(connectionId),
-					Data:         marshalledMessage,
-				}
-
-				fmt.Println("Posting msg to player", connectionId)
-				_, err = apiMgmtService.PostToConnection(postToConnectionInput)
-				if err != nil {
-					fmt.Println("Error posting welcome message to the player", err)
-					return
-				}
-			}()
-		}
-	}
-	waitGroup.Wait()
-
-	return nil
-}
 
 func (players *Players) PlayerStates() []PlayerState {
 	playerStates := make([]PlayerState, 0, len(*players))

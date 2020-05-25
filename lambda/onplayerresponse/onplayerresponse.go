@@ -18,7 +18,7 @@ var (
 func init() {
 	gameDao = dao.NewGameDao(os.Getenv("GAMES_TABLE"))
 	playerDao = dao.NewPlayerDao(os.Getenv("PLAYERS_TABLE"))
-	playerService = service.NewPlayerService(playerDao)
+	playerService = service.NewPlayerService(playerDao, nil)
 }
 
 func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {

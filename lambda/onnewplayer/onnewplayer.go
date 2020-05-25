@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
 	lambda2 "github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/ksanta/word-stallion/dao"
 	"github.com/ksanta/word-stallion/model"
@@ -19,6 +18,7 @@ import (
 var (
 	gameDao                 *dao.GameDao
 	playerDao               *dao.PlayerDao
+	apiDao                  *dao.ApiDao
 	playerService           *service.PlayerService
 	lambdaService           *lambda2.Lambda
 	doStartGameFunctionName string
@@ -27,7 +27,8 @@ var (
 func init() {
 	gameDao = dao.NewGameDao(os.Getenv("GAMES_TABLE"))
 	playerDao = dao.NewPlayerDao(os.Getenv("PLAYERS_TABLE"))
-	playerService = service.NewPlayerService(playerDao)
+	apiDao = dao.NewApiDao(os.Getenv("API_ENDPOINT"))
+	playerService = service.NewPlayerService(playerDao, apiDao)
 
 	mySession := session.Must(session.NewSession())
 	lambdaService = lambda2.New(mySession)
@@ -36,8 +37,7 @@ func init() {
 
 func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Get a pending game. One will be created if there isn't one yet.
-	endpoint := event.RequestContext.DomainName + "/" + event.RequestContext.Stage
-	game, err := gameDao.GetPendingGame(endpoint)
+	game, err := gameDao.GetPendingGame()
 	if err != nil {
 		return newErrorResponse("Failed to get Game item", err)
 	}
@@ -60,32 +60,13 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 	}
 
 	// Send a welcome message to the player
-	mySession := session.Must(session.NewSession())
-	apiMgmtService := apigatewaymanagementapi.New(mySession, &aws.Config{
-		Endpoint: aws.String(event.RequestContext.DomainName + "/" + event.RequestContext.Stage),
-	})
-
-	welcomeMessage := model.MessageToPlayer{
-		Welcome: &model.Welcome{TargetScore: game.TargetScore},
-	}
-	marshalledMessage, err := json.Marshal(&welcomeMessage)
-	if err != nil {
-		return newErrorResponse("Error marshalling welcome message", err)
-	}
-
-	fmt.Println("Sending welcome to player:", string(marshalledMessage))
-	postToConnectionInput := &apigatewaymanagementapi.PostToConnectionInput{
-		ConnectionId: aws.String(event.RequestContext.ConnectionID),
-		Data:         marshalledMessage,
-	}
-
-	_, err = apiMgmtService.PostToConnection(postToConnectionInput)
+	err = playerService.SendWelcomeMessageToPlayer(event.RequestContext.ConnectionID, game.TargetScore)
 	if err != nil {
 		return newErrorResponse("Error posting welcome message to the player", err)
 	}
 
 	// Send a "round summary" message to all active players
-	players, err := playerService.SendRoundSummaryToAllActivePlayers(game.GameId, game.Endpoint)
+	players, err := playerService.SendRoundSummaryToActivePlayers(game.GameId)
 	if err != nil {
 		return newErrorResponse("Error sending a message to all players", err)
 	}

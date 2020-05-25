@@ -152,9 +152,6 @@ Resources:
           arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnDisconnectFunction.Arn}/invocations
   Deployment:
     Type: AWS::ApiGatewayV2::Deployment
-    DependsOn:
-      - NewPlayerRoute
-      - DisconnectRoute
     Properties:
       ApiId: !Ref WordStallionApi
   Stage:
@@ -224,6 +221,7 @@ Resources:
           PLAYERS_TABLE: !Ref PlayersTableName
           GAMES_TABLE: !Ref GamesTableName
           DO_START_GAME_FUNCTION_NAME: !Ref DoStartGameFunction
+          API_ENDPOINT: !Join [ '', [ !Ref WordStallionApi, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'Stage'] ]
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref PlayersTableName
@@ -257,6 +255,7 @@ Resources:
           GAMES_TABLE: !Ref GamesTableName
           PLAYERS_TABLE: !Ref PlayersTableName
           DO_ROUND_FUNCTION_NAME: !Ref DoRoundFunction
+          API_ENDPOINT: !Join [ '', [ !Ref WordStallionApi, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'Stage'] ]
       Timeout: 10
       Policies:
         - DynamoDBCrudPolicy:
@@ -283,6 +282,7 @@ Resources:
           GAMES_TABLE: !Ref GamesTableName
           PLAYERS_TABLE: !Ref PlayersTableName
           WORDS_BUCKET: !Ref WordBucketName
+          API_ENDPOINT: !Join [ '', [ !Ref WordStallionApi, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'Stage'] ]
       Timeout: 10
       Policies:
         - DynamoDBCrudPolicy:
@@ -308,6 +308,7 @@ Resources:
         Variables:
           GAMES_TABLE: !Ref GamesTableName
           PLAYERS_TABLE: !Ref PlayersTableName
+          API_ENDPOINT: !Join [ '', [ !Ref WordStallionApi, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'Stage'] ]
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref PlayersTableName

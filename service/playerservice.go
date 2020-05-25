@@ -4,19 +4,29 @@ import (
 	"fmt"
 	"github.com/ksanta/word-stallion/dao"
 	"github.com/ksanta/word-stallion/model"
+	"sync"
 )
 
 type PlayerService struct {
 	playerDao *dao.PlayerDao
+	apiDao    *dao.ApiDao
 }
 
-func NewPlayerService(playerDao *dao.PlayerDao) *PlayerService {
+func NewPlayerService(playerDao *dao.PlayerDao, apiDao *dao.ApiDao) *PlayerService {
 	return &PlayerService{
 		playerDao: playerDao,
+		apiDao:    apiDao,
 	}
 }
 
-func (playerService *PlayerService) SendRoundSummaryToAllActivePlayers(gameId string, endpoint string) (model.Players, error) {
+func (playerService *PlayerService) SendWelcomeMessageToPlayer(connectionId string, targetScore int) error {
+	welcomeMessage := model.MessageToPlayer{
+		Welcome: &model.Welcome{TargetScore: targetScore},
+	}
+	return playerService.apiDao.SendMessageToPlayer(connectionId, welcomeMessage)
+}
+
+func (playerService *PlayerService) SendRoundSummaryToActivePlayers(gameId string) (model.Players, error) {
 	players, err := playerService.playerDao.GetPlayers(gameId)
 	if err != nil {
 		return nil, fmt.Errorf("error getting players: %w", err)
@@ -27,16 +37,11 @@ func (playerService *PlayerService) SendRoundSummaryToAllActivePlayers(gameId st
 			PlayerStates: players.PlayerStates(),
 		},
 	}
-
-	err = players.SendMessageToActivePlayers(roundSummaryMsg, endpoint)
-	if err != nil {
-		return nil, fmt.Errorf("error sending msg to players: %w", err)
-	}
-
+	playerService.sendMessageToActivePlayers(players, roundSummaryMsg)
 	return players, nil
 }
 
-func (playerService *PlayerService) SendAboutToStartToAllActivePlayers(gameId string, endpoint string, startingInSeconds int) (model.Players, error) {
+func (playerService *PlayerService) SendAboutToStartToActivePlayers(gameId string, startingInSeconds int) (model.Players, error) {
 	players, err := playerService.playerDao.GetPlayers(gameId)
 	if err != nil {
 		return nil, fmt.Errorf("error getting players: %w", err)
@@ -47,16 +52,11 @@ func (playerService *PlayerService) SendAboutToStartToAllActivePlayers(gameId st
 			Seconds: startingInSeconds,
 		},
 	}
-
-	err = players.SendMessageToActivePlayers(aboutToStartMsg, endpoint)
-	if err != nil {
-		return nil, fmt.Errorf("error sending msg to all players: %w", err)
-	}
-
+	playerService.sendMessageToActivePlayers(players, aboutToStartMsg)
 	return players, nil
 }
 
-func (playerService *PlayerService) SendQuestionToAllActivePlayers(players model.Players, endpoint string, wordsInThisRound model.Words, correctAnswer int, secondsPerQuestion int) error {
+func (playerService *PlayerService) SendQuestionToActivePlayers(players model.Players, wordsInThisRound model.Words, correctAnswer int, secondsPerQuestion int) error {
 	questionMsg := model.MessageToPlayer{
 		PresentQuestion: &model.PresentQuestion{
 			WordToGuess:    wordsInThisRound[correctAnswer].Word,
@@ -64,9 +64,27 @@ func (playerService *PlayerService) SendQuestionToAllActivePlayers(players model
 			SecondsAllowed: secondsPerQuestion,
 		},
 	}
-	err := players.SendMessageToActivePlayers(questionMsg, endpoint)
-	if err != nil {
-		return fmt.Errorf("error sending question to all players: %w", err)
-	}
+	playerService.sendMessageToActivePlayers(players, questionMsg)
 	return nil
+}
+
+func (playerService *PlayerService) sendMessageToActivePlayers(players model.Players, message interface{}) {
+	waitGroup := sync.WaitGroup{}
+
+	for _, player := range players {
+		if player.Active {
+			waitGroup.Add(1)
+			// Make a copy so goroutine will pick out the correct connection id
+			connectionId := player.ConnectionId
+			go func() {
+				defer waitGroup.Done()
+				err := playerService.apiDao.SendMessageToPlayer(connectionId, message)
+				if err != nil {
+					fmt.Println("Error posting message to player", err)
+				}
+			}()
+		}
+	}
+
+	waitGroup.Wait()
 }

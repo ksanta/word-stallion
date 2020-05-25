@@ -18,7 +18,8 @@ var (
 func init() {
 	gameDao = dao.NewGameDao(os.Getenv("GAMES_TABLE"))
 	playerDao = dao.NewPlayerDao(os.Getenv("PLAYERS_TABLE"))
-	playerService = service.NewPlayerService(playerDao)
+	apiDao := dao.NewApiDao(os.Getenv("API_ENDPOINT"))
+	playerService = service.NewPlayerService(playerDao, apiDao)
 }
 
 func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -58,7 +59,7 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 		}
 	}
 
-	_, err = playerService.SendRoundSummaryToAllActivePlayers(game.GameId, game.Endpoint)
+	_, err = playerService.SendRoundSummaryToActivePlayers(game.GameId)
 	if err != nil {
 		return newErrorResponse("error ending round update to all players", err)
 	}

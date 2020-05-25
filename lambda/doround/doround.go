@@ -20,7 +20,8 @@ var (
 func init() {
 	gameDao = dao.NewGameDao(os.Getenv("GAMES_TABLE"))
 	playerDao = dao.NewPlayerDao(os.Getenv("PLAYERS_TABLE"))
-	playerService = service.NewPlayerService(playerDao)
+	apiDao := dao.NewApiDao(os.Getenv("API_ENDPOINT"))
+	playerService = service.NewPlayerService(playerDao, apiDao)
 
 	bucketName := os.Getenv("WORDS_BUCKET")
 	wordsDao := dao.NewWordsDao(bucketName)
@@ -66,7 +67,7 @@ func handler(gameId string) error {
 		*/
 
 		fmt.Println("Sending question to all players")
-		err = playerService.SendQuestionToAllActivePlayers(players, game.Endpoint, wordsInThisRound, game.CorrectAnswer, game.SecondsPerQuestion)
+		err = playerService.SendQuestionToActivePlayers(players, wordsInThisRound, game.CorrectAnswer, game.SecondsPerQuestion)
 		if err != nil {
 			return fmt.Errorf("error sending msg to players: %w\n", err)
 		}
