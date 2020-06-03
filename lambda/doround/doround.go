@@ -47,6 +47,7 @@ func handler(gameId string) error {
 		return fmt.Errorf("error getting game: %w\n", err)
 	}
 
+	// todo: move this check into OnPlayerResponse function
 	if players.PlayerWithHighestPoints().Points < game.TargetScore {
 		// Prepare question and answer
 		fmt.Println("Preparing a new question")
@@ -60,11 +61,12 @@ func handler(gameId string) error {
 			return fmt.Errorf("error saving game: %w\n", err)
 		}
 
-		fmt.Println("Updating players to waiting (todo)")
-		/*
-		 set players.waiting
-		 save players
-		*/
+		fmt.Println("Updating players to waiting")
+		players.SetActivesToWaiting()
+		err := playerDao.PutPlayers(players)
+		if err != nil {
+			return fmt.Errorf("error saving players: %w\n", err)
+		}
 
 		fmt.Println("Sending question to all players")
 		err = playerService.SendQuestionToActivePlayers(players, wordsInThisRound, game.CorrectAnswer, game.SecondsPerQuestion)
@@ -73,7 +75,7 @@ func handler(gameId string) error {
 		}
 
 	} else {
-		// 	send game summary to all active players
+		// todo: send game summary to all active players
 		fmt.Println("todo: send game summary to all players")
 	}
 

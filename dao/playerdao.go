@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/ksanta/word-stallion/model"
+	"sync"
 	"time"
 )
 
@@ -52,6 +53,28 @@ func (playerDao *PlayerDao) PutPlayer(player *model.Player) error {
 
 	_, err = playerDao.service.PutItem(putItemInput)
 	return err
+}
+
+func (playerDao *PlayerDao) PutPlayers(players model.Players) error {
+	waitGroup := sync.WaitGroup{}
+
+	for _, player := range players {
+		if player.Active {
+			waitGroup.Add(1)
+			playerCopy := player
+			go func() {
+				defer waitGroup.Done()
+				err := playerDao.PutPlayer(playerCopy)
+				if err != nil {
+					fmt.Println("error saving player in PutPlayers", err)
+				}
+			}()
+		}
+	}
+
+	waitGroup.Wait()
+	// todo: error handling
+	return nil
 }
 
 func (playerDao *PlayerDao) InactivatePlayer(connectionId string) (*model.Player, error) {

@@ -16,9 +16,9 @@ import (
 )
 
 var (
-	gameDao       *dao.GameDao
-	playerDao     *dao.PlayerDao
-	playerService *service.PlayerService
+	gameDao             *dao.GameDao
+	playerDao           *dao.PlayerDao
+	playerService       *service.PlayerService
 	lambdaService       *lambda2.Lambda
 	doRoundFunctionName string
 )
@@ -42,6 +42,7 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 	}
 	// Early exit if the player has already submitted their response
 	if player.WaitingForResponse == false {
+		fmt.Println("Player already responded - ignoring")
 		return events.APIGatewayProxyResponse{
 			StatusCode: 200,
 		}, nil
@@ -64,10 +65,11 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 	// Award points to the player
 	playerResponse := playerMessage.PlayerResponse.Response
 	fmt.Println("Player response is", playerResponse)
-	timeReceived := time.Unix(event.RequestContext.RequestTimeEpoch, 0)
+	timeReceived := time.Now()
 	fmt.Println("Time received is", timeReceived)
-	points := game.CalculatePoints(playerResponse, timeReceived)
-	player.Points += points
+	pointsForRound := game.CalculatePoints(playerResponse, timeReceived)
+	fmt.Println("Player awarded", pointsForRound, "points")
+	player.Points += pointsForRound
 
 	// Save player's updated attributes
 	err = playerDao.PutPlayer(player)
@@ -87,8 +89,13 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 		return newErrorResponse("error fetching players", err)
 	}
 	if players.AllActivePlayersResponded() {
+		_, err := playerService.SendRoundSummaryToActivePlayers(game.GameId)
+		if err != nil {
+			return newErrorResponse("error sending round summary", err)
+		}
+		// todo: decide here to do another round or end game
 		time.Sleep(2 * time.Second)
-		err := invokeDoRound(game.GameId)
+		err = invokeDoRound(game.GameId)
 		if err != nil {
 			return newErrorResponse("error invoking DoRound", err)
 		}

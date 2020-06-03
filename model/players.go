@@ -62,3 +62,11 @@ func (players Players) AllActivePlayersResponded() bool {
 	}
 	return true
 }
+
+func (players Players) SetActivesToWaiting() {
+	for _, p := range players {
+		if p.Active {
+			p.WaitingForResponse = true
+		}
+	}
+}
