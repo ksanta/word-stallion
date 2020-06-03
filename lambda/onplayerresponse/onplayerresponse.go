@@ -1,36 +1,113 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	lambda2 "github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/ksanta/word-stallion/dao"
+	"github.com/ksanta/word-stallion/model"
 	"github.com/ksanta/word-stallion/service"
 	"os"
+	"time"
 )
 
 var (
 	gameDao       *dao.GameDao
 	playerDao     *dao.PlayerDao
 	playerService *service.PlayerService
+	lambdaService       *lambda2.Lambda
+	doRoundFunctionName string
 )
 
 func init() {
 	gameDao = dao.NewGameDao(os.Getenv("GAMES_TABLE"))
 	playerDao = dao.NewPlayerDao(os.Getenv("PLAYERS_TABLE"))
-	playerService = service.NewPlayerService(playerDao, nil)
+	apiDao := dao.NewApiDao(os.Getenv("API_ENDPOINT"))
+	playerService = service.NewPlayerService(playerDao, apiDao)
+
+	mySession := session.Must(session.NewSession())
+	lambdaService = lambda2.New(mySession)
+	doRoundFunctionName = os.Getenv("DO_ROUND_FUNCTION_NAME")
 }
 
 func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
-	/*
-	   player.waiting = false
-	   Award points to the player
-	   Send msg to player with correct answer
+	// Get the information we need
+	player, err := playerDao.GetPlayer(event.RequestContext.ConnectionID)
+	if err != nil {
+		return newErrorResponse("error fetching player", err)
+	}
+	// Early exit if the player has already submitted their response
+	if player.WaitingForResponse == false {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 200,
+		}, nil
+	}
+	player.WaitingForResponse = false
 
-	   if all active players waiting == false
-	     sleep 2 seconds
-	     invoke "Do Round"
-	*/
+	game, err := gameDao.GetGame(player.GameId)
+	if err != nil {
+		return newErrorResponse("error fetching game", err)
+	}
+
+	// Extract player response from the request
+	fmt.Println("Received new player msg:", event.Body)
+	playerMessage := model.MessageFromPlayer{}
+	err = json.Unmarshal([]byte(event.Body), &playerMessage)
+	if err != nil {
+		return newErrorResponse("error unmarshalling JSON body", err)
+	}
+
+	// Award points to the player
+	playerResponse := playerMessage.PlayerResponse.Response
+	fmt.Println("Player response is", playerResponse)
+	timeReceived := time.Unix(event.RequestContext.RequestTimeEpoch, 0)
+	fmt.Println("Time received is", timeReceived)
+	points := game.CalculatePoints(playerResponse, timeReceived)
+	player.Points += points
+
+	// Save player's updated attributes
+	err = playerDao.PutPlayer(player)
+	if err != nil {
+		return newErrorResponse("error saving player", err)
+	}
+
+	// Send the correct answer to the player
+	err = playerService.SendCorrectAnswerToPlayer(player.ConnectionId, playerResponse == game.CorrectAnswer, game.CorrectAnswer)
+	if err != nil {
+		return newErrorResponse("error sending correct answer to player", err)
+	}
+
+	// Invoke DoRound if all players have responded
+	players, err := playerDao.GetPlayers(game.GameId)
+	if err != nil {
+		return newErrorResponse("error fetching players", err)
+	}
+	if players.AllActivePlayersResponded() {
+		time.Sleep(2 * time.Second)
+		err := invokeDoRound(game.GameId)
+		if err != nil {
+			return newErrorResponse("error invoking DoRound", err)
+		}
+	}
+
+	return events.APIGatewayProxyResponse{
+		StatusCode: 200,
+	}, nil
+}
+
+func invokeDoRound(gameId string) error {
+	invokeInput := &lambda2.InvokeInput{
+		FunctionName:   aws.String(doRoundFunctionName),
+		InvocationType: aws.String(lambda2.InvocationTypeEvent),
+		Payload:        []byte("\"" + gameId + "\""),
+	}
+
+	_, err := lambdaService.Invoke(invokeInput)
+	return err
 }
 
 func newErrorResponse(msg string, err error) (events.APIGatewayProxyResponse, error) {

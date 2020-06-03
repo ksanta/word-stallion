@@ -21,6 +21,7 @@ $(document).ready(function () {
 
         const response = $(this).data('option')
         let message = {
+            MessageType: "playerresponse",
             PlayerResponse: {
                 Response: response
             }
@@ -37,14 +38,14 @@ $(document).ready(function () {
 
         $('#selections').hide();
 
-        let player = {
+        let message = {
             MessageType: "newplayer",
             NewPlayer: {
                 Name: document.getElementById("nameEntryOne").value,
                 Icon: $('.horse-selected')[0].id
             }
         };
-        connection.send(JSON.stringify(player))
+        connection.send(JSON.stringify(message))
         $('#startGameBox').show()
     });
 

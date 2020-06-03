@@ -36,7 +36,11 @@ func (playerDao *PlayerDao) AddNewPlayer(connectionId string, gameId string, nam
 		ExpiresAt:          time.Now().Add(10 * time.Minute).Unix(),
 	}
 
-	marshalledPlayer, err := dynamodbattribute.MarshalMap(newPlayer)
+	return playerDao.PutPlayer(newPlayer)
+}
+
+func (playerDao *PlayerDao) PutPlayer(player *model.Player) error {
+	marshalledPlayer, err := dynamodbattribute.MarshalMap(player)
 	if err != nil {
 		return err
 	}
@@ -47,11 +51,7 @@ func (playerDao *PlayerDao) AddNewPlayer(connectionId string, gameId string, nam
 	}
 
 	_, err = playerDao.service.PutItem(putItemInput)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (playerDao *PlayerDao) InactivatePlayer(connectionId string) (*model.Player, error) {

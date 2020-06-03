@@ -26,6 +26,16 @@ func (playerService *PlayerService) SendWelcomeMessageToPlayer(connectionId stri
 	return playerService.apiDao.SendMessageToPlayer(connectionId, welcomeMessage)
 }
 
+func (playerService *PlayerService) SendCorrectAnswerToPlayer(connectionId string, correct bool, correctAnswer int) error {
+	answerMessage := model.MessageToPlayer{
+		PlayerResult: &model.PlayerResult{
+			Correct:       correct,
+			CorrectAnswer: correctAnswer,
+		},
+	}
+	return playerService.apiDao.SendMessageToPlayer(connectionId, answerMessage)
+}
+
 func (playerService *PlayerService) SendRoundSummaryToActivePlayers(gameId string) (model.Players, error) {
 	players, err := playerService.playerDao.GetPlayers(gameId)
 	if err != nil {
