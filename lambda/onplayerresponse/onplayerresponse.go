@@ -83,7 +83,7 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 		return newErrorResponse("error sending correct answer to player", err)
 	}
 
-	// Invoke DoRound if all players have responded
+	// If all players have responded, send round update, and do another round or finish the game
 	players, err := playerDao.GetPlayers(game.GameId)
 	if err != nil {
 		return newErrorResponse("error fetching players", err)
@@ -93,11 +93,19 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 		if err != nil {
 			return newErrorResponse("error sending round summary", err)
 		}
-		// todo: decide here to do another round or end game
-		time.Sleep(2 * time.Second)
-		err = invokeDoRound(game.GameId)
-		if err != nil {
-			return newErrorResponse("error invoking DoRound", err)
+		if players.PlayerWithHighestPoints().Points < game.TargetScore {
+			// Do another round if the target score is not yet reached
+			time.Sleep(2 * time.Second)
+			err = invokeDoRound(game.GameId)
+			if err != nil {
+				return newErrorResponse("error invoking DoRound", err)
+			}
+		} else {
+			// Finish the game if the target score is reached
+			err = playerService.SendGameSummaryToAllActivePlayers(players)
+			if err != nil {
+				return newErrorResponse("error sending game summary to players", err)
+			}
 		}
 	}
 

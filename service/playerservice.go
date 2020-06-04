@@ -78,6 +78,18 @@ func (playerService *PlayerService) SendQuestionToActivePlayers(players model.Pl
 	return nil
 }
 
+func (playerService *PlayerService) SendGameSummaryToAllActivePlayers(players model.Players) error {
+	winner := players.PlayerWithHighestPoints()
+	msg := model.MessageToPlayer{
+		Summary: &model.Summary{
+			Winner: winner.Name,
+			Icon:   winner.Icon,
+		},
+	}
+	playerService.sendMessageToActivePlayers(players, msg)
+	return nil
+}
+
 func (playerService *PlayerService) sendMessageToActivePlayers(players model.Players, message interface{}) {
 	waitGroup := sync.WaitGroup{}
 

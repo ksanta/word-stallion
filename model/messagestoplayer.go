@@ -5,9 +5,9 @@ type MessageToPlayer struct {
 	Welcome         *Welcome         `json:",omitempty"`
 	AboutToStart    *AboutToStart    `json:",omitempty"`
 	PresentQuestion *PresentQuestion `json:",omitempty"`
-	PlayerResult     *PlayerResult     `json:",omitempty"`
-	RoundSummary *RoundSummary `json:",omitempty"`
-	//Summary          *Summary          `json:",omitempty"`
+	PlayerResult    *PlayerResult    `json:",omitempty"`
+	RoundSummary    *RoundSummary    `json:",omitempty"`
+	Summary         *Summary         `json:",omitempty"`
 	//Error            *GameError        `json:",omitempty"`
 }
 
@@ -30,13 +30,19 @@ type PresentQuestion struct {
 
 // PlayerResult is sent to the player telling them their result of the round
 type PlayerResult struct {
-	Correct       bool   // todo: drop this field
+	Correct       bool // todo: drop this field
 	CorrectAnswer int
 }
 
 // RoundSummary is sent to each active player at the end of each round
 type RoundSummary struct {
 	PlayerStates []PlayerState
+}
+
+// Summary is sent to the client at the end telling the player the final result
+type Summary struct {
+	Winner string
+	Icon   string
 }
 
 // PlayerState is a summary of player info as part of the round summary

@@ -6,6 +6,7 @@ import (
 	"github.com/ksanta/word-stallion/dao"
 	"github.com/ksanta/word-stallion/model"
 	"github.com/ksanta/word-stallion/service"
+	"math/rand"
 	"os"
 	"time"
 )
@@ -32,6 +33,8 @@ func init() {
 	}
 	fmt.Println("Init: loaded", len(words), "words")
 	wordsByType = words.GroupByType()
+
+	rand.Seed(time.Now().Unix())
 }
 
 func handler(gameId string) error {
@@ -47,36 +50,29 @@ func handler(gameId string) error {
 		return fmt.Errorf("error getting game: %w\n", err)
 	}
 
-	// todo: move this check into OnPlayerResponse function
-	if players.PlayerWithHighestPoints().Points < game.TargetScore {
-		// Prepare question and answer
-		fmt.Println("Preparing a new question")
-		wordType := model.PickRandomType()
-		wordsInThisRound := wordsByType[wordType].PickRandomWords(game.OptionsPerQuestion)
-		game.CorrectAnswer = wordsInThisRound.PickRandomIndex()
-		game.StartTime = time.Now()
-		fmt.Println("Updating game")
-		err = gameDao.PutGame(game)
-		if err != nil {
-			return fmt.Errorf("error saving game: %w\n", err)
-		}
+	// Prepare question and answer
+	fmt.Println("Preparing a new question")
+	wordType := model.PickRandomType()
+	wordsInThisRound := wordsByType[wordType].PickRandomWords(game.OptionsPerQuestion)
+	game.CorrectAnswer = wordsInThisRound.PickRandomIndex()
+	game.StartTime = time.Now()
+	fmt.Println("Updating game")
+	err = gameDao.PutGame(game)
+	if err != nil {
+		return fmt.Errorf("error saving game: %w\n", err)
+	}
 
-		fmt.Println("Updating players to waiting")
-		players.SetActivesToWaiting()
-		err := playerDao.PutPlayers(players)
-		if err != nil {
-			return fmt.Errorf("error saving players: %w\n", err)
-		}
+	fmt.Println("Updating players to waiting")
+	players.SetActivesToWaiting()
+	err = playerDao.PutPlayers(players)
+	if err != nil {
+		return fmt.Errorf("error saving players: %w\n", err)
+	}
 
-		fmt.Println("Sending question to all players")
-		err = playerService.SendQuestionToActivePlayers(players, wordsInThisRound, game.CorrectAnswer, game.SecondsPerQuestion)
-		if err != nil {
-			return fmt.Errorf("error sending msg to players: %w\n", err)
-		}
-
-	} else {
-		// todo: send game summary to all active players
-		fmt.Println("todo: send game summary to all players")
+	fmt.Println("Sending question to all players")
+	err = playerService.SendQuestionToActivePlayers(players, wordsInThisRound, game.CorrectAnswer, game.SecondsPerQuestion)
+	if err != nil {
+		return fmt.Errorf("error sending msg to players: %w\n", err)
 	}
 
 	return nil
