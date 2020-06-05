@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
+	"github.com/ksanta/word-stallion/model"
 )
 
 type ApiDao struct {
@@ -23,8 +24,8 @@ func NewApiDao(endpoint string) *ApiDao {
 	}
 }
 
-func (apiDao *ApiDao) SendMessageToPlayer(connectionId string, message interface{}) error {
-	fmt.Println("Sending msg to player", connectionId)
+func (apiDao *ApiDao) SendMessageToPlayer(player model.Player, message interface{}, msgType string) error {
+	fmt.Printf("Sending %s to %s\n", msgType, player.Name)
 
 	marshalledMessage, err := json.Marshal(message)
 	if err != nil {
@@ -32,7 +33,7 @@ func (apiDao *ApiDao) SendMessageToPlayer(connectionId string, message interface
 	}
 
 	postToConnectionInput := &apigatewaymanagementapi.PostToConnectionInput{
-		ConnectionId: aws.String(connectionId),
+		ConnectionId: aws.String(player.ConnectionId),
 		Data:         marshalledMessage,
 	}
 

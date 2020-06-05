@@ -19,21 +19,21 @@ func NewPlayerService(playerDao *dao.PlayerDao, apiDao *dao.ApiDao) *PlayerServi
 	}
 }
 
-func (playerService *PlayerService) SendWelcomeMessageToPlayer(connectionId string, targetScore int) error {
+func (playerService *PlayerService) SendWelcomeMessageToPlayer(player model.Player, targetScore int) error {
 	welcomeMessage := model.MessageToPlayer{
 		Welcome: &model.Welcome{TargetScore: targetScore},
 	}
-	return playerService.apiDao.SendMessageToPlayer(connectionId, welcomeMessage)
+	return playerService.apiDao.SendMessageToPlayer(player, welcomeMessage, "welcome")
 }
 
-func (playerService *PlayerService) SendCorrectAnswerToPlayer(connectionId string, correct bool, correctAnswer int) error {
+func (playerService *PlayerService) SendCorrectAnswerToPlayer(player model.Player, correct bool, correctAnswer int) error {
 	answerMessage := model.MessageToPlayer{
 		PlayerResult: &model.PlayerResult{
 			Correct:       correct,
 			CorrectAnswer: correctAnswer,
 		},
 	}
-	return playerService.apiDao.SendMessageToPlayer(connectionId, answerMessage)
+	return playerService.apiDao.SendMessageToPlayer(player, answerMessage, "correct answer")
 }
 
 func (playerService *PlayerService) SendRoundSummaryToActivePlayers(gameId string) (model.Players, error) {
@@ -47,7 +47,7 @@ func (playerService *PlayerService) SendRoundSummaryToActivePlayers(gameId strin
 			PlayerStates: players.PlayerStates(),
 		},
 	}
-	playerService.sendMessageToActivePlayers(players, roundSummaryMsg)
+	playerService.sendMessageToActivePlayers(players, roundSummaryMsg, "round summary")
 	return players, nil
 }
 
@@ -62,7 +62,7 @@ func (playerService *PlayerService) SendAboutToStartToActivePlayers(gameId strin
 			Seconds: startingInSeconds,
 		},
 	}
-	playerService.sendMessageToActivePlayers(players, aboutToStartMsg)
+	playerService.sendMessageToActivePlayers(players, aboutToStartMsg, "about to start")
 	return players, nil
 }
 
@@ -74,7 +74,7 @@ func (playerService *PlayerService) SendQuestionToActivePlayers(players model.Pl
 			SecondsAllowed: secondsPerQuestion,
 		},
 	}
-	playerService.sendMessageToActivePlayers(players, questionMsg)
+	playerService.sendMessageToActivePlayers(players, questionMsg, "question")
 	return nil
 }
 
@@ -86,21 +86,21 @@ func (playerService *PlayerService) SendGameSummaryToAllActivePlayers(players mo
 			Icon:   winner.Icon,
 		},
 	}
-	playerService.sendMessageToActivePlayers(players, msg)
+	playerService.sendMessageToActivePlayers(players, msg, "game summary")
 	return nil
 }
 
-func (playerService *PlayerService) sendMessageToActivePlayers(players model.Players, message interface{}) {
+func (playerService *PlayerService) sendMessageToActivePlayers(players model.Players, message interface{}, messageType string) {
 	waitGroup := sync.WaitGroup{}
 
 	for _, player := range players {
 		if player.Active {
 			waitGroup.Add(1)
 			// Make a copy so goroutine will pick out the correct connection id
-			connectionId := player.ConnectionId
+			playerCopy := player
 			go func() {
 				defer waitGroup.Done()
-				err := playerService.apiDao.SendMessageToPlayer(connectionId, message)
+				err := playerService.apiDao.SendMessageToPlayer(*playerCopy, message, messageType)
 				if err != nil {
 					fmt.Println("Error posting message to player", err)
 				}

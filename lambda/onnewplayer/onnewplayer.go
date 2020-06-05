@@ -53,14 +53,14 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 
 	// Create a new Player item in Dynamo
 	fmt.Println("Saving new player:", event.RequestContext.ConnectionID)
-	err = playerDao.AddNewPlayer(event.RequestContext.ConnectionID,
+	player, err := playerDao.AddNewPlayer(event.RequestContext.ConnectionID,
 		game.GameId, newPlayerMessage.Name, newPlayerMessage.Icon)
 	if err != nil {
 		return newErrorResponse("Error saving new player", err)
 	}
 
 	// Send a welcome message to the player
-	err = playerService.SendWelcomeMessageToPlayer(event.RequestContext.ConnectionID, game.TargetScore)
+	err = playerService.SendWelcomeMessageToPlayer(*player, game.TargetScore)
 	if err != nil {
 		return newErrorResponse("Error posting welcome message to the player", err)
 	}

@@ -22,3 +22,13 @@ Send a "round summary" message to all players waiting for this game to start. Th
 waiting players that a new player has joined the game and adds a new track on the screen.
 
 If the number of players waiting to start hits a pre-defined limit, then a game will automatically start.
+
+## DoStartGame
+
+## DoRound
+
+## OnPlayerResponse
+
+## OnDisconnect
+
+## DoWordScrape

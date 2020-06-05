@@ -25,7 +25,7 @@ func NewPlayerDao(tableName string) *PlayerDao {
 	}
 }
 
-func (playerDao *PlayerDao) AddNewPlayer(connectionId string, gameId string, name string, icon string) error {
+func (playerDao *PlayerDao) AddNewPlayer(connectionId string, gameId string, name string, icon string) (*model.Player, error) {
 	newPlayer := &model.Player{
 		ConnectionId:       connectionId,
 		GameId:             gameId,
@@ -37,7 +37,12 @@ func (playerDao *PlayerDao) AddNewPlayer(connectionId string, gameId string, nam
 		ExpiresAt:          time.Now().Add(10 * time.Minute).Unix(),
 	}
 
-	return playerDao.PutPlayer(newPlayer)
+	err := playerDao.PutPlayer(newPlayer)
+	if err != nil {
+		return nil, err
+	}
+
+	return newPlayer, nil
 }
 
 func (playerDao *PlayerDao) PutPlayer(player *model.Player) error {

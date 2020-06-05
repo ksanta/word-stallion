@@ -36,10 +36,12 @@ func init() {
 
 func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Get the information we need
+	fmt.Println("Getting player")
 	player, err := playerDao.GetPlayer(event.RequestContext.ConnectionID)
 	if err != nil {
 		return newErrorResponse("error fetching player", err)
 	}
+
 	// Early exit if the player has already submitted their response
 	if player.WaitingForResponse == false {
 		fmt.Println("Player already responded - ignoring")
@@ -49,13 +51,13 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 	}
 	player.WaitingForResponse = false
 
+	fmt.Println("Getting game")
 	game, err := gameDao.GetGame(player.GameId)
 	if err != nil {
 		return newErrorResponse("error fetching game", err)
 	}
 
 	// Extract player response from the request
-	fmt.Println("Received new player msg:", event.Body)
 	playerMessage := model.MessageFromPlayer{}
 	err = json.Unmarshal([]byte(event.Body), &playerMessage)
 	if err != nil {
@@ -64,26 +66,26 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 
 	// Award points to the player
 	playerResponse := playerMessage.PlayerResponse.Response
-	fmt.Println("Player response is", playerResponse)
-	timeReceived := time.Now()
-	fmt.Println("Time received is", timeReceived)
-	pointsForRound := game.CalculatePoints(playerResponse, timeReceived)
-	fmt.Println("Player awarded", pointsForRound, "points")
+	fmt.Printf("%s responded with %d\n", player.Name, playerResponse)
+	pointsForRound := game.CalculatePoints(playerResponse, time.Now())
+	fmt.Printf("%s awarded %d points\n", player.Name, pointsForRound)
 	player.Points += pointsForRound
 
 	// Save player's updated attributes
+	fmt.Println("Saving player")
 	err = playerDao.PutPlayer(player)
 	if err != nil {
 		return newErrorResponse("error saving player", err)
 	}
 
 	// Send the correct answer to the player
-	err = playerService.SendCorrectAnswerToPlayer(player.ConnectionId, playerResponse == game.CorrectAnswer, game.CorrectAnswer)
+	err = playerService.SendCorrectAnswerToPlayer(*player, playerResponse == game.CorrectAnswer, game.CorrectAnswer)
 	if err != nil {
 		return newErrorResponse("error sending correct answer to player", err)
 	}
 
 	// If all players have responded, send round update, and do another round or finish the game
+	fmt.Println("Getting players")
 	players, err := playerDao.GetPlayers(game.GameId)
 	if err != nil {
 		return newErrorResponse("error fetching players", err)
@@ -95,7 +97,9 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 		}
 		if players.PlayerWithHighestPoints().Points < game.TargetScore {
 			// Do another round if the target score is not yet reached
+			fmt.Println("Sleeping two seconds")
 			time.Sleep(2 * time.Second)
+			fmt.Print("Invoking DoRound")
 			err = invokeDoRound(game.GameId)
 			if err != nil {
 				return newErrorResponse("error invoking DoRound", err)
