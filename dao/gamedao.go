@@ -29,10 +29,10 @@ func (gameDao *GameDao) GetPendingGame() (*model.Game, error) {
 	// Scan for a pending game
 	scanInput := &dynamodb.ScanInput{
 		TableName:        gameDao.tableName,
-		FilterExpression: aws.String("game_in_progress = :gameInProgress"),
+		FilterExpression: aws.String("game_state = :gameState"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":gameInProgress": {
-				BOOL: aws.Bool(false),
+			":gameState": {
+				S: aws.String(string(model.Pending)),
 			},
 		},
 		ConsistentRead: aws.Bool(true),
@@ -54,7 +54,7 @@ func (gameDao *GameDao) GetPendingGame() (*model.Game, error) {
 			SecondsPerQuestion: 10,
 			MaxPlayerCount:     2,
 			CorrectAnswer:      -1,
-			GameInProgress:     false,
+			GameState:          model.Pending,
 			ExpiresAt:          0, // no expiry for pending games
 		}
 		err = gameDao.PutGame(newGame)

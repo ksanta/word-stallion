@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	lambda2 "github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/ksanta/word-stallion/dao"
+	"github.com/ksanta/word-stallion/model"
 	"github.com/ksanta/word-stallion/service"
 	"os"
 	"time"
@@ -38,12 +39,12 @@ func handler(gameId string) error {
 	}
 
 	// Ignore multiple requests to start a game if it's already in progress
-	if game.GameInProgress {
+	if game.GameState == model.InProgress {
 		return nil
 	}
 
 	// Update game to in progress
-	game.GameInProgress = true
+	game.GameState = model.InProgress
 	game.ExpiresAt = time.Now().Add(10 * time.Minute).Unix()
 	err = gameDao.PutGame(game)
 	if err != nil {

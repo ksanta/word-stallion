@@ -105,10 +105,18 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 				return newErrorResponse("error invoking DoRound", err)
 			}
 		} else {
-			// Finish the game if the target score is reached
+			// Game is finished - send winner to all players
 			err = playerService.SendGameSummaryToAllActivePlayers(players)
 			if err != nil {
 				return newErrorResponse("error sending game summary to players", err)
+			}
+
+			// Update game state as finished
+			fmt.Println("Updating game as finished")
+			game.GameState = model.Finished
+			err := gameDao.PutGame(game)
+			if err != nil {
+				return newErrorResponse("error saving game", err)
 			}
 		}
 	}

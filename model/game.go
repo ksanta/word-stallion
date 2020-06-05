@@ -10,11 +10,19 @@ type Game struct {
 	OptionsPerQuestion int       `json:"options_per_question"`
 	SecondsPerQuestion int       `json:"duration_per_question"`
 	MaxPlayerCount     int       `json:"max_player_count"`
-	GameInProgress     bool      `json:"game_in_progress"`
+	GameState          GameState `json:"game_state"`
 	CorrectAnswer      int       `json:"correct_answer"`
 	StartTime          time.Time `json:"start_time"`
 	ExpiresAt          int64     `json:"expires_at"`
 }
+
+type GameState string
+
+const (
+	Pending    = GameState("PENDING")
+	InProgress = GameState("IN_PROGRESS")
+	Finished   = GameState("FINISHED")
+)
 
 func (game *Game) CalculatePoints(submittedAnswer int, timeReceived time.Time) int {
 	elapsedDuration := timeReceived.Sub(game.StartTime)
