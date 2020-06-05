@@ -63,7 +63,7 @@ func handler(gameId string) error {
 	}
 
 	fmt.Println("Updating players to waiting")
-	players.SetActivesToWaiting()
+	players.SetActivesToNotResponded()
 	err = playerDao.PutPlayers(players)
 	if err != nil {
 		return fmt.Errorf("error saving players: %w\n", err)

@@ -56,17 +56,17 @@ func (players Players) PlayerWithHighestPoints() *Player {
 
 func (players Players) AllActivePlayersResponded() bool {
 	for _, player := range players {
-		if player.Active && player.WaitingForResponse {
+		if player.Active && !player.Responded {
 			return false
 		}
 	}
 	return true
 }
 
-func (players Players) SetActivesToWaiting() {
+func (players Players) SetActivesToNotResponded() {
 	for _, p := range players {
 		if p.Active {
-			p.WaitingForResponse = true
+			p.Responded = false
 		}
 	}
 }

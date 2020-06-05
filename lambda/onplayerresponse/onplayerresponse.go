@@ -43,13 +43,13 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 	}
 
 	// Early exit if the player has already submitted their response
-	if player.WaitingForResponse == false {
+	if player.Responded == true {
 		fmt.Println("Player already responded - ignoring")
 		return events.APIGatewayProxyResponse{
 			StatusCode: 200,
 		}, nil
 	}
-	player.WaitingForResponse = false
+	player.Responded = true
 
 	fmt.Println("Getting game")
 	game, err := gameDao.GetGame(player.GameId)

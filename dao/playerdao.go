@@ -27,14 +27,14 @@ func NewPlayerDao(tableName string) *PlayerDao {
 
 func (playerDao *PlayerDao) AddNewPlayer(connectionId string, gameId string, name string, icon string) (*model.Player, error) {
 	newPlayer := &model.Player{
-		ConnectionId:       connectionId,
-		GameId:             gameId,
-		Active:             true,
-		WaitingForResponse: false,
-		Name:               name,
-		Icon:               icon,
-		Points:             0,
-		ExpiresAt:          time.Now().Add(10 * time.Minute).Unix(),
+		ConnectionId: connectionId,
+		GameId:       gameId,
+		Active:       true,
+		Responded:    false,
+		Name:         name,
+		Icon:         icon,
+		Points:       0,
+		ExpiresAt:    time.Now().Add(10 * time.Minute).Unix(),
 	}
 
 	err := playerDao.PutPlayer(newPlayer)

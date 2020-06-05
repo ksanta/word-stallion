@@ -9,8 +9,8 @@ type Player struct {
 	// Whether the player has an active connection. Connection could go dead mid-game
 	// and the show must go on!
 	Active bool `json:"active"`
-	// WaitingFOrResponse means the player has been sent the question and hasn't received response yet
-	WaitingForResponse bool `json:"waiting_for_response"`
+	// This player has responded to the question
+	Responded bool `json:"responded"`
 	// Name of this player
 	Name string `json:"name"`
 	// Client-specific icon to represent the player
