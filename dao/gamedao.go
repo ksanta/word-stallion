@@ -52,7 +52,7 @@ func (gameDao *GameDao) GetPendingGame() (*model.Game, error) {
 			TargetScore:        500,
 			OptionsPerQuestion: 3,
 			SecondsPerQuestion: 10,
-			MaxPlayerCount:     2,
+			MaxPlayerCount:     6,
 			CorrectAnswer:      -1,
 			GameState:          model.Pending,
 			CreatedAt:          time.Now(),

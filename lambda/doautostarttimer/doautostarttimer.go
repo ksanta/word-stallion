@@ -21,7 +21,7 @@ func init() {
 }
 
 func handler(gameId string) error {
-	time.Sleep(5 * time.Second)
+	time.Sleep(30 * time.Second)
 	return invokeDoStartGame(gameId)
 }
 
