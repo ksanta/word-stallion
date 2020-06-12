@@ -12,7 +12,8 @@ type Game struct {
 	MaxPlayerCount     int       `json:"max_player_count"`
 	GameState          GameState `json:"game_state"`
 	CorrectAnswer      int       `json:"correct_answer"`
-	StartTime          time.Time `json:"start_time"`
+	RoundStartTime     time.Time `json:"round_start_time"`
+	CreatedAt          time.Time `json:"created_at"`
 	ExpiresAt          int64     `json:"expires_at"`
 }
 
@@ -25,7 +26,7 @@ const (
 )
 
 func (game *Game) CalculatePoints(submittedAnswer int, timeReceived time.Time) int {
-	elapsedDuration := timeReceived.Sub(game.StartTime)
+	elapsedDuration := timeReceived.Sub(game.RoundStartTime)
 	durationPerQuestion := time.Duration(game.SecondsPerQuestion) * time.Second
 
 	// Player took longer than allowed time - no points!

@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/ksanta/word-stallion/model"
+	"sort"
 	"sync"
 	"time"
 )
@@ -25,16 +26,18 @@ func NewPlayerDao(tableName string) *PlayerDao {
 	}
 }
 
-func (playerDao *PlayerDao) AddNewPlayer(connectionId string, gameId string, name string, icon string) (*model.Player, error) {
+// todo: move most of this logic into model.NewPlayer()
+func (playerDao *PlayerDao) AddNewPlayer(connectionId string, gameId string, millisSinceGameCreated int64, name string, icon string) (*model.Player, error) {
 	newPlayer := &model.Player{
-		ConnectionId: connectionId,
-		GameId:       gameId,
-		Active:       true,
-		Responded:    false,
-		Name:         name,
-		Icon:         icon,
-		Points:       0,
-		ExpiresAt:    time.Now().Add(10 * time.Minute).Unix(),
+		ConnectionId:                     connectionId,
+		GameId:                           gameId,
+		Active:                           true,
+		MillisSinceGameCreatedWhenJoined: millisSinceGameCreated,
+		Responded:                        false,
+		Name:                             name,
+		Icon:                             icon,
+		Points:                           0,
+		ExpiresAt:                        time.Now().Add(10 * time.Minute).Unix(),
 	}
 
 	err := playerDao.PutPlayer(newPlayer)
@@ -176,6 +179,10 @@ func (playerDao *PlayerDao) GetPlayers(gameId string) (model.Players, error) {
 		players = append(players, player)
 	}
 
+	// Sort players by the time they joined, so players always keep the same tracks
+	sort.Slice(players, func(i, j int) bool {
+		return players[i].MillisSinceGameCreatedWhenJoined < players[j].MillisSinceGameCreatedWhenJoined
+	})
 	return players, nil
 }
 

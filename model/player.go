@@ -9,6 +9,8 @@ type Player struct {
 	// Whether the player has an active connection. Connection could go dead mid-game
 	// and the show must go on!
 	Active bool `json:"active"`
+	// Milliseconds since the game was created when the player joined
+	MillisSinceGameCreatedWhenJoined int64 `json:"millis_since_game_created_when_joined"`
 	// This player has responded to the question
 	Responded bool `json:"responded"`
 	// Name of this player

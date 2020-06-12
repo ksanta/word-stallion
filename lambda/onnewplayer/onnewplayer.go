@@ -13,6 +13,7 @@ import (
 	"github.com/ksanta/word-stallion/model"
 	"github.com/ksanta/word-stallion/service"
 	"os"
+	"time"
 )
 
 var (
@@ -53,8 +54,9 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 
 	// Create a new Player item in Dynamo
 	fmt.Println("Saving new player:", event.RequestContext.ConnectionID)
+	millisSinceGameCreated := time.Since(game.CreatedAt).Milliseconds()
 	player, err := playerDao.AddNewPlayer(event.RequestContext.ConnectionID,
-		game.GameId, newPlayerMessage.Name, newPlayerMessage.Icon)
+		game.GameId, millisSinceGameCreated, newPlayerMessage.Name, newPlayerMessage.Icon)
 	if err != nil {
 		return newErrorResponse("Error saving new player", err)
 	}

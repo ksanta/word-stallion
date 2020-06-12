@@ -55,7 +55,7 @@ func handler(gameId string) error {
 	wordType := model.PickRandomType()
 	wordsInThisRound := wordsByType[wordType].PickRandomWords(game.OptionsPerQuestion)
 	game.CorrectAnswer = wordsInThisRound.PickRandomIndex()
-	game.StartTime = time.Now()
+	game.RoundStartTime = time.Now()
 	fmt.Println("Updating game")
 	err = gameDao.PutGame(game)
 	if err != nil {

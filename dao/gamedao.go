@@ -55,6 +55,7 @@ func (gameDao *GameDao) GetPendingGame() (*model.Game, error) {
 			MaxPlayerCount:     2,
 			CorrectAnswer:      -1,
 			GameState:          model.Pending,
+			CreatedAt:          time.Now(),
 			ExpiresAt:          0, // no expiry for pending games
 		}
 		err = gameDao.PutGame(newGame)
