@@ -51,8 +51,6 @@ func handler(gameId string) error {
 		return fmt.Errorf("error updating game to in progress: %w", err)
 	}
 
-	// todo: Set the expiresAt attribute on all the players
-
 	// Send "about to start" message to all active players
 	const startingInSeconds = 5
 	_, err = playerService.SendAboutToStartToActivePlayers(game.GameId, startingInSeconds)

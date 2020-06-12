@@ -241,6 +241,7 @@ Resources:
           PLAYERS_TABLE: !Ref PlayersTableName
           GAMES_TABLE: !Ref GamesTableName
           DO_START_GAME_FUNCTION_NAME: !Ref DoStartGameFunction
+          DO_AUTOSTART_TIMER_FUNCTION_NAME: !Ref DoAutostartTimerFunction
           API_ENDPOINT: !Join [ '', [ !Ref WordStallionApi, '.execute-api.',!Ref 'AWS::Region','.amazonaws.com/',!Ref 'Stage'] ]
       Policies:
         - DynamoDBCrudPolicy:
@@ -249,6 +250,8 @@ Resources:
             TableName: !Ref GamesTableName
         - LambdaInvokePolicy:
             FunctionName: !Ref DoStartGameFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref DoAutostartTimerFunction
         - Statement:
             - Effect: Allow
               Action:
@@ -325,6 +328,20 @@ Resources:
                 - 'execute-api:ManageConnections'
               Resource:
                 - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WordStallionApi}/*'
+  DoAutostartTimerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/doautostarttimer/
+      Handler: doautostarttimer
+      MemorySize: 128
+      Runtime: go1.x
+      Environment:
+        Variables:
+          DO_START_GAME_FUNCTION_NAME: !Ref DoStartGameFunction
+      Timeout: 35
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref DoStartGameFunction
   DoRoundFunction:
     Type: AWS::Serverless::Function
     Properties:

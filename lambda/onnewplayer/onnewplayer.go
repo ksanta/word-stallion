@@ -23,6 +23,7 @@ var (
 	playerService           *service.PlayerService
 	lambdaService           *lambda2.Lambda
 	doStartGameFunctionName string
+	doAutostartTimerName    string
 )
 
 func init() {
@@ -34,10 +35,12 @@ func init() {
 	mySession := session.Must(session.NewSession())
 	lambdaService = lambda2.New(mySession)
 	doStartGameFunctionName = os.Getenv("DO_START_GAME_FUNCTION_NAME")
+	doAutostartTimerName = os.Getenv("DO_AUTOSTART_TIMER_FUNCTION_NAME")
 }
 
 func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Get a pending game. One will be created if there isn't one yet.
+	// todo: move logic into here
 	game, err := gameDao.GetPendingGame()
 	if err != nil {
 		return newErrorResponse("Failed to get Game item", err)
@@ -73,6 +76,15 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 		return newErrorResponse("Error sending a message to all players", err)
 	}
 
+	// If this is the first player, invoke the auto start timer
+	// todo: alternately, invoke this when a game is created
+	if len(players) == 1 {
+		err := invokeDoAutostartTimer(game.GameId)
+		if err != nil {
+			return newErrorResponse("Error invoking autostart timer function", err)
+		}
+	}
+
 	// Auto-start game if max-players-per-game has been reached
 	if len(players) >= game.MaxPlayerCount {
 		fmt.Println("Auto-starting game", game.GameId, "after reaching max players")
@@ -85,6 +97,17 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
 	}, nil
+}
+
+func invokeDoAutostartTimer(gameId string) error {
+	invokeInput := &lambda2.InvokeInput{
+		FunctionName:   aws.String(doAutostartTimerName),
+		InvocationType: aws.String(lambda2.InvocationTypeEvent),
+		Payload:        []byte("\"" + gameId + "\""),
+	}
+
+	_, err := lambdaService.Invoke(invokeInput)
+	return err
 }
 
 func invokeDoStartGame(gameId string) error {
