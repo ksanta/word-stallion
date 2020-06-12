@@ -48,13 +48,6 @@ $(document).ready(function () {
         connection.send(JSON.stringify(message))
         $('#startGameBox').show()
     });
-
-    $('#start-game-btn').on('click', function (e) {
-        $.get("http://" + API_IP + "/start", function () {
-            console.log("game started");
-        });
-        $('#startGameBox').hide()
-    });
 });
 //End of document onReady
 
