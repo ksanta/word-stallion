@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	lambda2 "github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/ksanta/word-stallion/dao"
 	"github.com/ksanta/word-stallion/model"
 	"github.com/ksanta/word-stallion/service"
@@ -19,7 +16,7 @@ var (
 	gameDao             *dao.GameDao
 	playerDao           *dao.PlayerDao
 	playerService       *service.PlayerService
-	lambdaService       *lambda2.Lambda
+	functionDao         *dao.FunctionDao
 	doRoundFunctionName string
 )
 
@@ -29,8 +26,7 @@ func init() {
 	apiDao := dao.NewApiDao(os.Getenv("API_ENDPOINT"))
 	playerService = service.NewPlayerService(playerDao, apiDao)
 
-	mySession := session.Must(session.NewSession())
-	lambdaService = lambda2.New(mySession)
+	functionDao = dao.NewFunctionDao()
 	doRoundFunctionName = os.Getenv("DO_ROUND_FUNCTION_NAME")
 }
 
@@ -100,7 +96,7 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 			fmt.Println("Sleeping two seconds")
 			time.Sleep(2 * time.Second)
 			fmt.Print("Invoking DoRound")
-			err = invokeDoRound(game.GameId)
+			err = functionDao.InvokeDoRound(doRoundFunctionName, game.GameId)
 			if err != nil {
 				return newErrorResponse("error invoking DoRound", err)
 			}
@@ -124,17 +120,6 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
 	}, nil
-}
-
-func invokeDoRound(gameId string) error {
-	invokeInput := &lambda2.InvokeInput{
-		FunctionName:   aws.String(doRoundFunctionName),
-		InvocationType: aws.String(lambda2.InvocationTypeEvent),
-		Payload:        []byte("\"" + gameId + "\""),
-	}
-
-	_, err := lambdaService.Invoke(invokeInput)
-	return err
 }
 
 func newErrorResponse(msg string, err error) (events.APIGatewayProxyResponse, error) {

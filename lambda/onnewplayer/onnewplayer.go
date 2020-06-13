@@ -6,9 +6,6 @@ import (
 	"fmt"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	lambda2 "github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/ksanta/word-stallion/dao"
 	"github.com/ksanta/word-stallion/model"
 	"github.com/ksanta/word-stallion/service"
@@ -21,7 +18,7 @@ var (
 	playerDao               *dao.PlayerDao
 	apiDao                  *dao.ApiDao
 	playerService           *service.PlayerService
-	lambdaService           *lambda2.Lambda
+	functionDao             *dao.FunctionDao
 	doStartGameFunctionName string
 	doAutostartTimerName    string
 )
@@ -31,9 +28,8 @@ func init() {
 	playerDao = dao.NewPlayerDao(os.Getenv("PLAYERS_TABLE"))
 	apiDao = dao.NewApiDao(os.Getenv("API_ENDPOINT"))
 	playerService = service.NewPlayerService(playerDao, apiDao)
+	functionDao = dao.NewFunctionDao()
 
-	mySession := session.Must(session.NewSession())
-	lambdaService = lambda2.New(mySession)
 	doStartGameFunctionName = os.Getenv("DO_START_GAME_FUNCTION_NAME")
 	doAutostartTimerName = os.Getenv("DO_AUTOSTART_TIMER_FUNCTION_NAME")
 }
@@ -79,7 +75,7 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 	// If this is the first player, invoke the auto start timer
 	// todo: alternately, invoke this when a game is created
 	if len(players) == 1 {
-		err := invokeDoAutostartTimer(game.GameId)
+		err := functionDao.InvokeAutostartTimer(doAutostartTimerName, game.GameId)
 		if err != nil {
 			return newErrorResponse("Error invoking autostart timer function", err)
 		}
@@ -88,7 +84,7 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 	// Auto-start game if max-players-per-game has been reached
 	if len(players) >= game.MaxPlayerCount {
 		fmt.Println("Auto-starting game", game.GameId, "after reaching max players")
-		err := invokeDoStartGame(game.GameId)
+		err := functionDao.InvokeStartGame(doStartGameFunctionName, game.GameId)
 		if err != nil {
 			return newErrorResponse("Error invoking start game function", err)
 		}
@@ -97,28 +93,6 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
 	}, nil
-}
-
-func invokeDoAutostartTimer(gameId string) error {
-	invokeInput := &lambda2.InvokeInput{
-		FunctionName:   aws.String(doAutostartTimerName),
-		InvocationType: aws.String(lambda2.InvocationTypeEvent),
-		Payload:        []byte("\"" + gameId + "\""),
-	}
-
-	_, err := lambdaService.Invoke(invokeInput)
-	return err
-}
-
-func invokeDoStartGame(gameId string) error {
-	invokeInput := &lambda2.InvokeInput{
-		FunctionName:   aws.String(doStartGameFunctionName),
-		InvocationType: aws.String(lambda2.InvocationTypeEvent),
-		Payload:        []byte("\"" + gameId + "\""),
-	}
-
-	_, err := lambdaService.Invoke(invokeInput)
-	return err
 }
 
 func newErrorResponse(msg string, err error) (events.APIGatewayProxyResponse, error) {
