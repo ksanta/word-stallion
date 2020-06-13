@@ -18,7 +18,7 @@ func init() {
 }
 
 func handler(gameId string) error {
-	time.Sleep(30 * time.Second)
+	time.Sleep(20 * time.Second)
 	return functionDao.InvokeStartGame(doStartGameFunctionName, gameId)
 }
 
