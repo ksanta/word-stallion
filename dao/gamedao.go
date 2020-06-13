@@ -118,3 +118,17 @@ func (gameDao *GameDao) GetGame(gameId string) (*model.Game, error) {
 
 	return game, nil
 }
+
+func (gameDao *GameDao) DeleteGame(game *model.Game) error {
+	deleteItemInput := &dynamodb.DeleteItemInput{
+		TableName: gameDao.tableName,
+		Key: map[string]*dynamodb.AttributeValue{
+			"game_id": {
+				S: aws.String(game.GameId),
+			},
+		},
+	}
+
+	_, err := gameDao.service.DeleteItem(deleteItemInput)
+	return err
+}

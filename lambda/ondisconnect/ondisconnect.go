@@ -69,9 +69,17 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 		}
 	}
 
-	_, err = playerService.SendRoundSummaryToActivePlayers(game.GameId)
+	players, err := playerService.SendRoundSummaryToActivePlayers(game.GameId)
 	if err != nil {
 		return newErrorResponse("error ending round update to all players", err)
+	}
+
+	// Delete the pending game if all players are inactive
+	if game.GameState == model.Pending && players.AllInactive() {
+		err := gameDao.DeleteGame(game)
+		if err != nil {
+			return newErrorResponse("error deleting pending game", err)
+		}
 	}
 
 	return events.APIGatewayProxyResponse{
