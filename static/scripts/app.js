@@ -111,36 +111,34 @@ var showQuestion = function (question) {
 var updateGame = function (summary) {
     for (let i = 0; i < summary.PlayerStates.length; i++) {
         const player = summary.PlayerStates[i];
-        const name = player.Name;
 
-        let horseIcon = player.Icon;
-        if (!player.Active) {
-            horseIcon = "dead"
-        }
-
-        let track = $('#track' + i)
+        let track = $('#track' + player.Id)
 
         // Create a new track if this is a new player
         if (track.length === 0) {
             track = $('#template-track')
                 .clone()
                 .appendTo('#tracks')
-                .attr('id', 'track' + i)
+                .attr('id', 'track' + player.Id)
                 .css('display', 'flex')
 
             track.find('img')
-                .attr('id', 'horse' + i)
+                .attr('id', 'horse' + player.Id)
 
             track.find('span')
-                .attr('id', 'player' + i)
+                .attr('id', 'player' + player.Id)
         }
 
         // Set the player name
-        const playerSpan = $('#player' + i)
-        playerSpan.text(name);
+        const playerSpan = $('#player' + player.Id)
+        playerSpan.text(player.Name);
 
         // Set the horse icon
-        const horse = $("#horse" + i)
+        let horseIcon = player.Icon;
+        if (!player.Active) {
+            horseIcon = "dead"
+        }
+        const horse = $("#horse" + player.Id)
         horse.attr('src', 'images/' + horseIcon + '.png')
 
         // Set the horse position

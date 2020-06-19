@@ -6,14 +6,7 @@ type Players []*Player
 func (players *Players) PlayerStates() []PlayerState {
 	playerStates := make([]PlayerState, 0, len(*players))
 	for _, p := range *players {
-		playerState := PlayerState{
-			Id:     p.ConnectionId,
-			Name:   p.Name,
-			Score:  p.Points,
-			Active: p.Active,
-			Icon:   p.Icon,
-		}
-		playerStates = append(playerStates, playerState)
+		playerStates = append(playerStates, p.PlayerState())
 	}
 
 	return playerStates

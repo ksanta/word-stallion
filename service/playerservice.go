@@ -51,6 +51,16 @@ func (playerService *PlayerService) SendRoundSummaryToActivePlayers(gameId strin
 	return players, nil
 }
 
+func (playerService *PlayerService) SendPlayerUpdateToActivePlayers(players model.Players, state model.PlayerState) error {
+	roundSummaryMsg := model.MessageToPlayer{
+		RoundSummary: &model.RoundSummary{
+			PlayerStates: []model.PlayerState{state},
+		},
+	}
+	playerService.sendMessageToActivePlayers(players, roundSummaryMsg, "round summary")
+	return nil
+}
+
 func (playerService *PlayerService) SendAboutToStartToActivePlayers(gameId string, startingInSeconds int) (model.Players, error) {
 	players, err := playerService.playerDao.GetPlayers(gameId)
 	if err != nil {

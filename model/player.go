@@ -1,5 +1,7 @@
 package model
 
+import "strings"
+
 // Player represents a player that started playing a game. The JSON metadata is for converting
 // this struct into a DynamoDB item.
 type Player struct {
@@ -21,4 +23,15 @@ type Player struct {
 	Points int `json:"points"`
 	// Time this record will expire
 	ExpiresAt int64 `json:"expires_at"`
+}
+
+func (p Player) PlayerState() PlayerState {
+	cleanId := strings.ReplaceAll(p.ConnectionId, "=", "")
+	return PlayerState{
+		Id:     cleanId,
+		Name:   p.Name,
+		Score:  p.Points,
+		Active: p.Active,
+		Icon:   p.Icon,
+	}
 }

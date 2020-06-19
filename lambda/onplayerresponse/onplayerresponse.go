@@ -73,27 +73,32 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 		return newErrorResponse("error saving player", err)
 	}
 
-	// Send the correct answer to the player
+	// Asynchronously send the correct answer to the player
 	go func() {
 		err = playerService.SendCorrectAnswerToPlayer(*player, playerResponse == game.CorrectAnswer, game.CorrectAnswer)
 		if err != nil {
-			fmt.Println("error sending correct answer to player: %w", err)
+			fmt.Printf("error sending correct answer to player: %s\n", err)
 		}
 	}()
 
-	// If all players have responded, send round update, and do another round or finish the game
 	fmt.Println("Getting players")
 	players, err := playerDao.GetPlayers(game.GameId)
 	if err != nil {
 		return newErrorResponse("error fetching players", err)
 	}
 
-	if players.AllActivePlayersResponded() {
-		_, err := playerService.SendRoundSummaryToActivePlayers(game.GameId)
+	// Asynchronously send this player's update to all active players
+	go func() {
+		err := playerService.SendPlayerUpdateToActivePlayers(players, player.PlayerState())
 		if err != nil {
-			return newErrorResponse("error sending round summary", err)
+			fmt.Printf("error sending player update: %s\n", err)
 		}
+	}()
+
+	// If all players have responded, send round update, and do another round or finish the game
+	if players.AllActivePlayersResponded() {
 		if players.PlayerWithHighestPoints().Points < game.TargetScore {
+			// todo: let players know that the round is finished?
 			// Do another round if the target score is not yet reached
 			fmt.Println("Sleeping two seconds")
 			time.Sleep(2 * time.Second)
