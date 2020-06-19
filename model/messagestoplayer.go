@@ -47,6 +47,7 @@ type Summary struct {
 
 // PlayerState is a summary of player info as part of the round summary
 type PlayerState struct {
+	Id     string
 	Name   string
 	Icon   string
 	Score  int
