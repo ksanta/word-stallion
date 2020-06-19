@@ -31,7 +31,6 @@ func init() {
 }
 
 func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// Get the information we need
 	fmt.Println("Getting player")
 	player, err := playerDao.GetPlayer(event.RequestContext.ConnectionID)
 	if err != nil {
@@ -75,10 +74,12 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 	}
 
 	// Send the correct answer to the player
-	err = playerService.SendCorrectAnswerToPlayer(*player, playerResponse == game.CorrectAnswer, game.CorrectAnswer)
-	if err != nil {
-		return newErrorResponse("error sending correct answer to player", err)
-	}
+	go func() {
+		err = playerService.SendCorrectAnswerToPlayer(*player, playerResponse == game.CorrectAnswer, game.CorrectAnswer)
+		if err != nil {
+			fmt.Println("error sending correct answer to player: %w", err)
+		}
+	}()
 
 	// If all players have responded, send round update, and do another round or finish the game
 	fmt.Println("Getting players")
@@ -86,6 +87,7 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 	if err != nil {
 		return newErrorResponse("error fetching players", err)
 	}
+
 	if players.AllActivePlayersResponded() {
 		_, err := playerService.SendRoundSummaryToActivePlayers(game.GameId)
 		if err != nil {
