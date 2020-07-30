@@ -61,7 +61,8 @@ func handler(event events.APIGatewayWebsocketProxyRequest) (events.APIGatewayPro
 	}
 
 	// Send a welcome message to the player
-	err = playerService.SendWelcomeMessageToPlayer(*player, game.TargetScore)
+	secondsTillStart := game.GameStartTime.Sub(time.Now()).Seconds()
+	err = playerService.SendWelcomeMessageToPlayer(*player, game.TargetScore, int(secondsTillStart))
 	if err != nil {
 		return newErrorResponse("Error posting welcome message to the player", err)
 	}

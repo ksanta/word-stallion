@@ -337,11 +337,14 @@ Resources:
       Runtime: go1.x
       Environment:
         Variables:
+          GAMES_TABLE: !Ref GamesTableName
           DO_START_GAME_FUNCTION_NAME: !Ref DoStartGameFunction
       Timeout: 35
       Policies:
         - LambdaInvokePolicy:
             FunctionName: !Ref DoStartGameFunction
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GamesTableName
   DoRoundFunction:
     Type: AWS::Serverless::Function
     Properties:

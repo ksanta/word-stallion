@@ -19,9 +19,12 @@ func NewPlayerService(playerDao *dao.PlayerDao, apiDao *dao.ApiDao) *PlayerServi
 	}
 }
 
-func (playerService *PlayerService) SendWelcomeMessageToPlayer(player model.Player, targetScore int) error {
+func (playerService *PlayerService) SendWelcomeMessageToPlayer(player model.Player, targetScore int, secondsTillStart int) error {
 	welcomeMessage := model.MessageToPlayer{
-		Welcome: &model.Welcome{TargetScore: targetScore},
+		Welcome: &model.Welcome{
+			SecondsTillStart: secondsTillStart,
+			TargetScore:      targetScore,
+		},
 	}
 	return playerService.apiDao.SendMessageToPlayer(player, welcomeMessage, "welcome")
 }

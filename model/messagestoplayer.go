@@ -11,9 +11,10 @@ type MessageToPlayer struct {
 	//Error            *GameError        `json:",omitempty"`
 }
 
-// Welcome tells the client to display an intro to the player
+// Welcome is sent to a player as they are waiting for the game to start
 type Welcome struct {
-	TargetScore int
+	SecondsTillStart int
+	TargetScore      int
 }
 
 // AboutToStart tells all players that the game will start in X seconds

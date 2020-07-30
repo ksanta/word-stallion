@@ -46,13 +46,15 @@ $(document).ready(function () {
             }
         };
         connection.send(JSON.stringify(message))
-        $('#startGameBox').show()
     });
 });
 //End of document onReady
 
+var showWaiting = function(welcome) {
+    $('#waitingForPlayersBox').show()
+    console.log("Starting in" + welcome.SecondsTillStart)
+}
 
-//Helper Functions
 function displayWinner(win, pic) {
     $('#whoWon').show();
     victory.play();
@@ -71,7 +73,7 @@ connection.onerror = function (error) {
 };
 
 var showCountdown = function () {
-    $('#startGameBox').hide()
+    $('#waitingForPlayersBox').hide()
     $('#countDownBox').show();
     snd.play();
     snd.currentTime = 0;
@@ -179,7 +181,7 @@ connection.onmessage = function (wsMessage) {
         let data = JSON.parse(wsMessage.data);
 
         if (data.hasOwnProperty('Welcome')) {
-            // todo: should display "waiting for other players". Can display target score?
+            showWaiting(data.Welcome)
 
         } else if (data.hasOwnProperty('Error')) {
             showError(data.Error)
@@ -205,3 +207,4 @@ connection.onmessage = function (wsMessage) {
         console.log('Unexpected JSON: ', wsMessage.data);
     }
 };
+

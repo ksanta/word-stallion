@@ -49,6 +49,7 @@ func (gameDao *GameDao) GetPendingGame() (*model.Game, error) {
 
 		newGame := &model.Game{
 			GameId:             gameId,
+			GameStartTime:      time.Now().Add(20 * time.Second),
 			TargetScore:        500,
 			OptionsPerQuestion: 3,
 			SecondsPerQuestion: 10,
