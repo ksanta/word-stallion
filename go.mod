@@ -5,7 +5,7 @@ require (
 	github.com/antchfx/htmlquery v1.2.3 // indirect
 	github.com/antchfx/xmlquery v1.2.4 // indirect
 	github.com/aws/aws-lambda-go v1.16.0
-	github.com/aws/aws-sdk-go v1.30.18
+	github.com/aws/aws-sdk-go v1.34.0
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gocolly/colly v1.2.0
 	github.com/kennygrant/sanitize v1.2.4 // indirect
